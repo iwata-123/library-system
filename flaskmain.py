@@ -36,6 +36,10 @@ def staff_datapost():
 
     return id,name,author,publisher,isbn,kashidashi,kinsho,yoyaku
 
+def huwatto_post():
+    if request.method == 'POST':
+        content = request.form["content"]
+    return content
 
 app = Flask(__name__)
 
@@ -226,7 +230,6 @@ def staff_search_result():
 @app.route("/search_result", methods=["GET", "POST"])
 def search_result():
     id,name,author,publisher,isbn = datapost()
-#??????????????????????????????????????????????????????????????????????
     pattern = r"\d{3}+-[0-9\-]{9}+-\d{1}"
     re.search(pattern,isbn)
     rows = main.search_5(id,name,author,publisher,isbn)
@@ -546,6 +549,12 @@ def kaizyo_kakunin():
     
 
     return render_template("staff/kaihatsu/kaizyo_kakunin.html")
+
+@app.route("/huwatto")
+def huwatto():
+    content = huwatto_post()
+    rows = main.huwatto(content)
+    return render_template("user/huwatto.html",rows = rows)
 
 
 if __name__ == "__main__":
