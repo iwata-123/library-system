@@ -492,7 +492,6 @@ def search_8(id=None,name=None,author=None,publisher=None,isbn=None,kashidashi=N
                     return rows
                 print(rows)
 
-#まだ
 def hyozi():
     with sqlite3.connect('lib_sys.db') as conn:
         cur = conn.cursor()
@@ -537,7 +536,7 @@ def hyozi():
 
     return rows1,rows2,rows3,rows4
 
-#○
+
 def pre_tsuika():
     tuika_list_zosho = [
                         (1,1,1,1,"978-9-87-654321-0",0,0,0),
@@ -654,7 +653,6 @@ def d_koushin(id,name,author,publisher,isbn,kashidashi,kinsho,yoyaku):
         conn.commit()
 
 
-#まだ
 def d_tsuika(name,author,publisher,isbn):
     with sqlite3.connect('lib_sys.db') as conn:
         cur = conn.cursor()
@@ -722,7 +720,8 @@ def d_tsuika(name,author,publisher,isbn):
         conn.commit()
         flg = 0
         return flg 
-#まだ
+
+
 def d_sakuzyo(isbn):
     with sqlite3.connect('lib_sys.db') as conn:
         cur = conn.cursor()
@@ -775,7 +774,7 @@ def d_sakuzyo(isbn):
         conn.commit()
         return 1
 
-#まだ
+
 def d_kinsho(isbn):
     with sqlite3.connect('lib_sys.db') as conn:
         cur = conn.cursor()
