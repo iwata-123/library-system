@@ -552,9 +552,13 @@ def kaizyo_kakunin():
 
 @app.route("/huwatto")
 def huwatto():
+    return render_template("user/huwatto.html")
+
+@app.route("/huwatto_search_result", methods=["GET", "POST"])
+def huwatto_search_result():
     content = huwatto_post()
     rows = main.huwatto(content)
-    return render_template("user/huwatto.html",rows = rows)
+    return render_template("user/huwatto_search_result.html",rows = rows)
 
 
 if __name__ == "__main__":

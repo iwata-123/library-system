@@ -279,11 +279,15 @@ def search_5(id=None, name=None, author=None, publisher=None, isbn=None):
                 print(rows)
 
 def huwatto(content=None):
-
+    #sudachi.pyから始めている
     tokenizer_obj = dictionary.Dictionary().create()
     # 複数粒度分割
     mode = tokenizer.Tokenizer.SplitMode.A
-    [m.surface() for m in tokenizer_obj.tokenize(content, mode)]
+    print ([m.surface() for m in tokenizer_obj.tokenize(content, mode)])
+    #contentをそのまま持ってきているなのでスペースの空いた単語の列がそのまま来ている
+    #単語に分けれた
+    #
+
     return 
 
 
