@@ -19,7 +19,198 @@
 import sqlite3
 from sudachipy import tokenizer
 from sudachipy import dictionary
+# import numpy as np
+from collections import Counter
+import math
+from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
+from ja_stopword_filter import JaStopwordFilter
+import numpy as np
+import pandas as pd
 
+
+
+#ユーザーの概念をつくる
+class User:
+    name = ""
+    id = ""
+    password = ""
+    def __init__(self, name :str , id :str , password : str):
+        n = name.replace(' ','\n','\t','　')
+        i = id.replace(' ','\n','\t','　')
+        p = password.replace(' ','\n','\t','　')
+        self.name = n
+        self.id = i
+        self.password = p
+
+    def login(self,e_id,e_password):
+        if self.id != e_id :
+            print("idが違います")
+        elif self.password != e_password:
+            print("passwordが違います")
+        else:
+            print("ようこそ")
+
+def huwatto(content,conleng):
+    #sudachi.pyから始めている
+    # tokenizer_obj = dictionary.Dictionary().create()
+    # # 複数粒度分割
+    # mode = tokenizer.Tokenizer.SplitMode.A
+    # print ([m.surface() for m in tokenizer_obj.tokenize(content, mode)])
+    #contentをそのまま持ってきている.
+    #なのでスペースの空いた単語の列がそのまま来ている
+    #単語に分けれた
+    #conは分けたデータ
+    #
+    con = word_bunri(content)
+    idf = idf_calc(con)
+    tf = tf_calc(con)
+    tf_idf = tf_idf_calc(idf,tf,conleng)
+    mkmatrix(con,conleng,tf,idf,tf_idf)
+    #文書ごとの総tf_idf値を計算
+    #tf-idfをconの長さ分繰り返して計算
+
+
+
+    return tf_idf
+
+#どれだけ蔵書があるかカウント
+def count_book():
+    with sqlite3.connect('lib_sys.db') as conn:
+        cur = conn.cursor()
+        cur.execute(
+                    """
+                    SELECT id
+                    FROM zosho
+                    ORDER BY id DESC
+                    LIMIT 1
+                    """
+                    )
+        conn.commit()
+        rows = cur.fetchall()
+        rows = rows[0]
+        row = rows[0] 
+    return row
+
+#文書の数
+def count_word_all(con):
+    with sqlite3.connect('lib_sys.db') as conn:
+        cur = conn.cursor()
+        result = []
+        for c in con:
+            cnt = 0
+            i = 1
+            while i <= count_book():
+                #一件ずつテキストをとってくる
+                cur.execute(
+                            """
+                            SELECT
+                                textsource
+                            FROM
+                                textsource
+                            WHERE 
+                                id = ?
+                            """,(i,)
+                            )
+                conn.commit()
+                rows = cur.fetchone()
+                row = rows[0]
+                #カウントアップ
+                if c in row:
+                    cnt += 1
+                i += 1
+            result.append(cnt)
+        #何を返したらいい？
+
+    return result
+
+#ある単語がすべての文書からあった総数
+def count_word_from_one(con):
+    with sqlite3.connect('lib_sys.db') as conn:
+        cur = conn.cursor()
+        result = []
+        for c in con:
+            cnt = 0
+            i = 1
+            while i <= count_book():
+                #一件ずつテキストをとってくる
+                cur.execute(
+                            """
+                            SELECT
+                                textsource
+                            FROM
+                                textsource
+                            WHERE 
+                                id = ?
+                            """,(i,)
+                            )
+                conn.commit()
+                rows = cur.fetchone()
+                row = rows[0]
+                #カウントアップ
+                cnt += row.count(f"{c}")
+                i += 1
+            result.append(cnt)
+
+    return result
+
+
+def idf_calc(con):
+    n = count_book()
+    nt = count_word_all(con)
+    result = []
+    for val in nt:
+        if val != 0:
+            idf = math.log(n/nt)
+            result.append(idf)
+        else:
+            print("0除算")
+            idf = "error"
+            result.append(idf)
+    return result
+
+def tf_calc(content):
+    # 単語の出現回数をカウント
+    result = []
+    tf = count_word_from_one(content)
+    for val in tf:
+        result.append(math.log(val+1))
+    
+    return result
+
+def word_bunri(content):
+    tokenizer_obj = dictionary.Dictionary().create()
+    mode = tokenizer.Tokenizer.SplitMode.A
+    result = [m.surface() for m in tokenizer_obj.tokenize(content, mode)]
+    print (result)
+    return result 
+
+def tf_idf_calc(idf,tf,conleng):
+    i = 0
+    val = []
+    while i < conleng:
+        tf[i] * idf[i]
+        i += 1
+        val.append()
+    return val
+
+#ここで値も入れてしまいたい
+def mkmatrix(con,conleng,tf,idf,tf_idf):
+    rows, cols = conleng,4 
+    matrix = [[0 for _ in range(cols)] for _ in range(rows)]
+    i = 0
+    while i < conleng:
+        matrix[i][1] = con[i]
+        matrix[i][2] = tf[i]
+        matrix[i][3] = idf[i]
+        matrix[i][4] = tf_idf[i]
+        i += 1
+    for row in matrix:
+        print(row)
+
+
+def create_account(name,id,password):
+    u = User(name,id,password)
+    return u
 
 def maketable():
     with sqlite3.connect('lib_sys.db') as conn:
@@ -275,20 +466,9 @@ def search_5(id=None, name=None, author=None, publisher=None, isbn=None):
                 rows = cur.fetchall()
                 print(rows)
                 if rows != []:
+                    print(rows)
                     return rows
-                print(rows)
 
-def huwatto(content=None):
-    #sudachi.pyから始めている
-    tokenizer_obj = dictionary.Dictionary().create()
-    # 複数粒度分割
-    mode = tokenizer.Tokenizer.SplitMode.A
-    print ([m.surface() for m in tokenizer_obj.tokenize(content, mode)])
-    #contentをそのまま持ってきているなのでスペースの空いた単語の列がそのまま来ている
-    #単語に分けれた
-    #
-
-    return 
 
 
 
@@ -561,382 +741,6 @@ def hyozi():
     return rows1,rows2,rows3,rows4
 
 #○
-def pre_tsuika():
-    books = [
-        (1, 1, 1, 1, 1, "9784000000001", 0, 0, 0),
-        (2, 2, 2, 2, 2, "9784000000002", 0, 0, 0),
-        (3, 3, 3, 3, 3, "9784000000003", 0, 0, 0),
-        (4, 4, 4, 4, 4, "9784000000004", 0, 0, 0),
-        (5, 5, 5, 5, 5, "9784000000005", 0, 0, 0),
-        (6, 6, 6, 6, 6, "9784000000006", 0, 0, 0),
-        (7, 7, 7, 7, 7, "9784000000007", 0, 0, 0),
-        (8, 8, 8, 8, 8, "9784000000008", 0, 0, 0),
-        (9, 9, 9, 9, 9, "9784000000009", 0, 0, 0),
-        (10, 10, 10, 10, 10, "9784000000010", 0, 0, 0),
-        (11, 11, 11, 11, 11, "9784000000011", 0, 0, 0),
-        (12, 12, 12, 12, 12, "9784000000012", 0, 0, 0),
-        (13, 13, 13, 13, 13, "9784000000013", 0, 0, 0),
-        (14, 14, 14, 14, 14, "9784000000014", 0, 0, 0),
-        (15, 15, 15, 15, 15, "9784000000015", 0, 0, 0),
-        (16, 16, 16, 16, 16, "9784000000016", 0, 0, 0),
-        (17, 17, 17, 17, 17, "9784000000017", 0, 0, 0),
-        (18, 18, 18, 18, 18, "9784000000018", 0, 0, 0),
-        (19, 19, 19, 19, 19, "9784000000019", 0, 0, 0),
-        (20, 20, 20, 20, 20, "9784000000020", 0, 0, 0),
-        (21, 21, 21, 21, 21, "9784000000021", 0, 0, 0),
-        (22, 22, 22, 22, 22, "9784000000022", 0, 0, 0),
-        (23, 23, 23, 23, 23, "9784000000023", 0, 0, 0),
-        (24, 24, 24, 24, 24, "9784000000024", 0, 0, 0),
-        (25, 25, 25, 25, 25, "9784000000025", 0, 0, 0),
-        (26, 26, 26, 26, 26, "9784000000026", 0, 0, 0),
-        (27, 27, 27, 27, 27, "9784000000027", 0, 0, 0),
-        (28, 28, 28, 28, 28, "9784000000028", 0, 0, 0),
-        (29, 29, 29, 29, 29, "9784000000029", 0, 0, 0),
-        (30, 30, 30, 30, 30, "9784000000030", 0, 0, 0),
-        (31, 31, 31, 31, 31, "9784000000031", 0, 0, 0),
-        (32, 32, 32, 32, 32, "9784000000032", 0, 0, 0),
-        (33, 33, 33, 33, 33, "9784000000033", 0, 0, 0),
-        (34, 34, 34, 34, 34, "9784000000034", 0, 0, 0),
-        (35, 35, 35, 35, 35, "9784000000035", 0, 0, 0),
-        (36, 36, 36, 36, 36, "9784000000036", 0, 0, 0),
-        (37, 37, 37, 37, 37, "9784000000037", 0, 0, 0),
-        (38, 38, 38, 38, 38, "9784000000038", 0, 0, 0),
-        (39, 39, 39, 39, 39, "9784000000039", 0, 0, 0),
-        (40, 40, 40, 40, 40, "9784000000040", 0, 0, 0),
-        (41, 41, 41, 41, 41, "9784000000041", 0, 0, 0),
-        (42, 42, 42, 42, 42, "9784000000042", 0, 0, 0),
-        (43, 43, 43, 43, 43, "9784000000043", 0, 0, 0),
-        (44, 44, 44, 44, 44, "9784000000044", 0, 0, 0),
-        (45, 45, 45, 45, 45, "9784000000045", 0, 0, 0),
-        (46, 46, 46, 46, 46, "9784000000046", 0, 0, 0),
-        (47, 47, 47, 47, 47, "9784000000047", 0, 0, 0),
-        (48, 48, 48, 48, 48, "9784000000048", 0, 0, 0),
-        (49, 49, 49, 49, 49, "9784000000049", 0, 0, 0),
-        (50, 50, 50, 50, 50, "9784000000050", 0, 0, 0)
-    ]
-
-    names = [
-        (1, "量子世界への扉"),
-        (2, "Python実践入門"),
-        (3, "静かな森の記録"),
-        (4, "未来都市アルカ"),
-        (5, "数式と星空"),
-        (6, "深海研究日誌"),
-        (7, "人工知能概論"),
-        (8, "電脳迷宮"),
-        (9, "風と図書館"),
-        (10, "銀河鉄道の夢"),
-        (11, "宇宙船ノア"),
-        (12, "夏色ノート"),
-        (13, "微分積分の旅"),
-        (14, "暗号の秘密"),
-        (15, "夜明けのロボット"),
-        (16, "仮想世界探訪"),
-        (17, "光の街"),
-        (18, "量子回路設計"),
-        (19, "月面都市計画"),
-        (20, "時間旅行者"),
-        (21, "古代文明の謎"),
-        (22, "雪原の足跡"),
-        (23, "音楽理論基礎"),
-        (24, "プログラマの思考"),
-        (25, "雲海の城"),
-        (26, "電子工作入門"),
-        (27, "秋風エッセイ"),
-        (28, "銀色の海"),
-        (29, "数理モデル入門"),
-        (30, "星降るキャンパス"),
-        (31, "データ分析大全"),
-        (32, "生命科学の扉"),
-        (33, "機械学習実験室"),
-        (34, "旅する哲学"),
-        (35, "空想科学読本"),
-        (36, "深夜特急2050"),
-        (37, "ニューラルネットの世界"),
-        (38, "記憶のアーカイブ"),
-        (39, "ゼロから学ぶLinux"),
-        (40, "量子通信最前線"),
-        (41, "桜舞う丘"),
-        (42, "統計学ストーリー"),
-        (43, "天体観測ガイド"),
-        (44, "ロボット工学演習"),
-        (45, "未来予測論"),
-        (46, "サイバー都市"),
-        (47, "物理法則の探求"),
-        (48, "AI時代の社会"),
-        (49, "深宇宙探索記"),
-        (50, "知識の迷路")
-    ]    
-    authors = [
-        (1, "山田太郎"),
-        (2, "佐藤花子"),
-        (3, "高橋健"),
-        (4, "伊藤美咲"),
-        (5, "中村誠"),
-        (6, "渡辺光"),
-        (7, "小林直樹"),
-        (8, "加藤玲奈"),
-        (9, "吉田悠人"),
-        (10, "松本遥"),
-        (11, "井上修司"),
-        (12, "木村彩"),
-        (13, "林健太"),
-        (14, "清水真由"),
-        (15, "山口達也"),
-        (16, "森田葵"),
-        (17, "阿部誠司"),
-        (18, "石川由衣"),
-        (19, "前田航"),
-        (20, "藤井涼"),
-        (21, "岡田奈々"),
-        (22, "橋本蓮"),
-        (23, "斎藤優"),
-        (24, "池田未来"),
-        (25, "原田悠"),
-        (26, "福田陸"),
-        (27, "西村葵"),
-        (28, "長谷川誠"),
-        (29, "村上真"),
-        (30, "青木凛"),
-        (31, "三浦直人"),
-        (32, "近藤美月"),
-        (33, "遠藤光"),
-        (34, "坂本未来"),
-        (35, "土屋蒼"),
-        (36, "大野翼"),
-        (37, "平野楓"),
-        (38, "菅原遥"),
-        (39, "安藤誠"),
-        (40, "上田直樹"),
-        (41, "野口彩"),
-        (42, "谷口優"),
-        (43, "島田涼"),
-        (44, "宮本葵"),
-        (45, "河野誠"),
-        (46, "柴田未来"),
-        (47, "久保悠斗"),
-        (48, "工藤凛"),
-        (49, "中川翼"),
-        (50, "金子遥")
-    ]
-
-    publishers = [
-        (1, "青空出版"),
-        (2, "未来書房"),
-        (3, "知識社"),
-        (4, "銀河出版"),
-        (5, "創造社"),
-        (6, "北斗ブックス"),
-        (7, "テクノ社"),
-        (8, "風見書店"),
-        (9, "学術堂"),
-        (10, "星雲社"),
-        (11, "白夜出版"),
-        (12, "光彩堂"),
-        (13, "未来堂"),
-        (14, "翠文社"),
-        (15, "知能出版"),
-        (16, "創星社"),
-        (17, "青葉書房"),
-        (18, "暁出版"),
-        (19, "文理社"),
-        (20, "銀嶺堂"),
-        (21, "新世紀ブックス"),
-        (22, "東雲出版"),
-        (23, "天文社"),
-        (24, "風花堂"),
-        (25, "アルゴ出版"),
-        (26, "知恵の森"),
-        (27, "蒼空社"),
-        (28, "海鳴社"),
-        (29, "先端出版"),
-        (30, "黎明書房"),
-        (31, "未来技研"),
-        (32, "夢幻社"),
-        (33, "探究舎"),
-        (34, "無限堂"),
-        (35, "虹彩堂"),
-        (36, "サイエンス社"),
-        (37, "テラ出版"),
-        (38, "電脳書院"),
-        (39, "銀翼社"),
-        (40, "知新堂"),
-        (41, "創研出版"),
-        (42, "青嵐社"),
-        (43, "未来文化社"),
-        (44, "宙出版"),
-        (45, "星海書房"),
-        (46, "技術評論社"),
-        (47, "天空社"),
-        (48, "理工出版"),
-        (49, "潮流社"),
-        (50, "ナレッジブック")
-    ]
-
-    texts = [
-        (1, "量子力学の基本概念から最新研究までをやさしく解説する入門書。観測問題や量子もつれなど不思議な現象について具体例を交えながら説明し、初学者でも読み進めやすい構成となっている。"),
-        (2, "Pythonを使ったプログラミングの基礎から応用までを体系的に学べる一冊。Web開発やデータ分析、GUI制作など実践的な内容を含み、サンプルコードも豊富に掲載されている。"),
-        (3, "山奥の静かな村を舞台に、人々の日常と自然との関わりを丁寧に描いた物語。季節の移り変わりと共に登場人物の心情が変化していく様子が美しく表現されている。"),
-        (4, "高度に発展した未来都市で発生した事件を追うSF小説。人工知能と人類の関係、監視社会の問題など現代的なテーマを含みながらスリリングな展開が続く。"),
-        (5, "数学と天文学の歴史をたどりながら、人類がどのように宇宙を理解してきたのかを紹介する科学読み物。数式の背景にある物語にも焦点を当てている。"),
-        (6, "深海探査チームの活動記録をまとめたノンフィクション作品。未知の生物や海底資源についての研究成果を豊富なエピソードと共に紹介している。"),
-        (7, "人工知能技術の基礎理論から応用事例までを解説する専門書。ニューラルネットワークや機械学習について図を交えて説明している。"),
-        (8, "仮想空間に閉じ込められた主人公たちが謎を解きながら脱出を目指すSFアドベンチャー。ゲームと現実の境界が揺らぐ展開が特徴。"),
-        (9, "古びた図書館を舞台に、本を通じて人々が交流していく心温まる物語。読書の魅力と知識の継承について描かれている。"),
-        (10, "銀河を走る列車に乗り込んだ少年の冒険を描く幻想小説。旅の途中で出会う人々との交流を通じて成長していく姿が描かれる。"),
-        (11, "地球を離れた宇宙船で生活する人々の日常を描いたSF作品。閉鎖空間での人間関係や未来技術について深く掘り下げている。"),
-        (12, "高校生たちのひと夏の思い出を描いた青春小説。友情や進路への悩みを爽やかな文章で表現している。"),
-        (13, "微分積分学の基礎から応用までを丁寧に解説した参考書。例題と演習問題が豊富で独学にも適している。"),
-        (14, "古代から現代までの暗号技術の歴史を紹介しながら、情報セキュリティの重要性について解説している。"),
-        (15, "感情を持つロボットが人間社会で生活する未来を描いた物語。倫理や共存について考えさせられる内容となっている。"),
-        (16, "仮想現実技術を活用した新しい世界を探検するガイドブック。最新デバイスや応用例についても紹介している。"),
-        (17, "光に包まれた未来都市で暮らす人々の群像劇。テクノロジーと芸術が融合した社会の姿を描いている。"),
-        (18, "量子コンピュータの回路設計について基礎から学べる技術書。量子ビットやゲート操作を具体例で説明している。"),
-        (19, "月面都市建設計画をテーマにした科学読み物。宇宙開発技術やエネルギー問題について詳しく解説している。"),
-        (20, "偶然タイムマシンを発見した青年が歴史を巡る冒険小説。過去改変による影響を描くスリリングな展開が魅力。")
-    ]
-
-    texts += [
-        (21, "古代遺跡の発掘調査を通して失われた文明の秘密に迫る歴史ミステリー。考古学の知識と冒険要素を組み合わせた読み応えのある作品。"),
-        (22, "雪に覆われた大地を旅する探検隊の記録。極寒環境での生活や自然との戦いをリアルに描き出している。"),
-        (23, "音楽理論の基礎を初心者向けに解説した入門書。和音やリズム、作曲の考え方について具体例を交えて説明している。"),
-        (24, "優れたプログラマがどのように問題を考え解決しているのかを紹介する技術エッセイ。実践的な思考法が学べる内容。"),
-        (25, "空に浮かぶ城を舞台にしたファンタジー小説。主人公たちが秘宝を巡って旅を続ける壮大な物語となっている。"),
-        (26, "電子工作の基本からマイコン制御までを解説した実践書。初心者でも回路制作を楽しめるよう丁寧に構成されている。"),
-        (27, "秋の景色や日常の出来事を繊細な文章で描いたエッセイ集。季節の移ろいと人々の感情が静かに綴られている。"),
-        (28, "銀色に輝く海辺の町を舞台にした恋愛小説。再会した幼なじみとの交流を中心に物語が展開していく。"),
-        (29, "数理モデルを用いて社会現象や自然現象を分析する方法を解説した専門書。実例を交えながら数学的考え方を紹介している。"),
-        (30, "大学の天文サークルに所属する学生たちの青春を描いた物語。星空観測を通じて友情と夢を育んでいく。"),
-        (31, "データ分析の基礎から機械学習まで幅広く扱う解説書。統計処理や可視化技術についても詳しく説明している。"),
-        (32, "生命科学の発展と最新研究についてわかりやすく紹介する科学書。遺伝子編集や再生医療にも触れている。"),
-        (33, "機械学習モデルを実際に構築しながら学べる実践的な技術書。Pythonによるコード例が多数掲載されている。"),
-        (34, "旅先で出会う人々との会話を通じて哲学的テーマを考察する紀行エッセイ。人生観について深く考えさせられる。"),
-        (35, "一見空想に思える科学技術について現実的な視点から検証するユニークな科学読み物。身近な例も多く親しみやすい。"),
-        (36, "2050年の未来社会を舞台にしたロードムービー風SF小説。超高速交通網で各地を巡る主人公の旅を描いている。"),
-        (37, "ニューラルネットワークの理論と実装方法について詳しく解説した専門書。深層学習の基礎を学ぶことができる。"),
-        (38, "人々の記憶を保存できる技術が普及した世界を描く近未来小説。記憶と人格の関係について問いかけている。"),
-        (39, "Linuxの基本操作からシステム管理までを初心者向けに説明した入門書。コマンド例が豊富に掲載されている。"),
-        (40, "量子通信技術の原理と将来性について解説する技術書。量子暗号や次世代ネットワークへの応用を紹介している。"),
-        (41, "桜が舞う丘の上で再会した旧友たちの交流を描いた感動小説。時間の流れと友情の大切さがテーマとなっている。"),
-        (42, "統計学の基本概念をストーリー形式で学べる教育書。データの見方や分析方法を直感的に理解できる構成。"),
-        (43, "初心者向けの天体観測ガイド。星座の探し方や望遠鏡の使い方について写真付きで丁寧に説明している。"),
-        (44, "ロボット工学の基礎理論から制御技術までを学べる教科書。センサーやモーター制御についても解説している。"),
-        (45, "未来社会を予測するための技術動向や経済変化について分析した評論集。AIやエネルギー問題にも触れている。"),
-        (46, "巨大ネットワークで管理された近未来都市を舞台にしたサイバーパンク小説。自由と監視の対立を描いている。"),
-        (47, "古典力学から量子力学まで物理法則の成り立ちを紹介する科学書。実験例や歴史的背景も豊富に取り上げている。"),
-        (48, "AI技術が普及した社会で人々の働き方や価値観がどう変化するのかを考察する社会学的読み物。"),
-        (49, "深宇宙探査船に乗り込んだ研究者たちの冒険を描くSF作品。未知の惑星や異星文明との遭遇が大きな見どころ。"),
-        (50, "広大な図書館世界を巡りながら知識の意味を探していく幻想文学作品。本と記憶をテーマにした物語となっている。")
-    ]
-
-    # テスト用データ追加
-
-    books += [
-        (51, 51, 51, 51, 51, "9784000000051", 1, 0, 0),
-        (52, 52, 52, 52, 52, "9784000000052", 0, 1, 0),
-        (53, 53, 53, 53, 53, "9784000000053", 0, 0, 1),
-        (54, 54, 54, 54, 54, "9784000000054", 1, 1, 0),
-        (55, 55, 55, 55, 55, "9784000000055", 0, 1, 1),
-        (56, 56, 56, 56, 56, "9784000000056", 1, 0, 1),
-        (57, 57, 57, 57, 57, "9784000000057", 1, 1, 1),
-        (58, 58, 58, 58, 58, "9784000000058", 0, 0, 0),
-        (59, 59, 59, 59, 59, "9784000000059", 1, 0, 0),
-        (60, 60, 60, 60, 60, "9784000000060", 0, 1, 0)
-    ]
-
-    names += [
-        (51, "重複ISBNテスト"),
-        (52, "貸出中テスト"),
-        (53, "予約済みテスト"),
-        (54, "禁書フラグ確認"),
-        (55, "特殊文字テスト☆"),
-        (56, "超長タイトルの確認用データベース設計入門完全版"),
-        (57, "空白 テスト"),
-        (58, "NULL確認用"),
-        (59, "検索動作確認"),
-        (60, "最終テストデータ")
-    ]
-
-    authors += [
-        (51, "Test Author"),
-        (52, "Admin User"),
-        (53, "System Writer"),
-        (54, "Debug Tester"),
-        (55, "Sample Name"),
-        (56, "Long Name Author Example"),
-        (57, "Space User"),
-        (58, "Null Checker"),
-        (59, "Search Engine"),
-        (60, "Final Writer")
-    ]
-
-    publishers += [
-        (51, "Test出版"),
-        (52, "Debug社"),
-        (53, "System Books"),
-        (54, "Checker出版"),
-        (55, "Sample社"),
-        (56, "Long Publisher Name Books"),
-        (57, "Space出版"),
-        (58, "Null出版"),
-        (59, "Search社"),
-        (60, "Final出版")
-    ]
-
-    texts += [
-        (51, "ISBNやIDの扱いを確認するためのテストデータ。データベースで重複処理や検索動作を確認する用途を想定している。"),
-        (52, "貸出中フラグが有効になっている状態を確認するためのデータ。貸出画面や返却処理の動作テストに利用できる。"),
-        (53, "予約済み状態を確認するためのテストデータ。ユーザー予約機能や一覧表示の確認に使用する。"),
-        (54, "禁書フラグが立った場合に一覧や検索結果でどのように表示されるかを確認するためのデータ。"),
-        (55, "特殊文字や記号を含むタイトルや出版社名の表示確認を目的としたテスト用データ。文字化け確認にも利用可能。"),
-        (56, "非常に長いタイトルや著者名を扱った場合にレイアウト崩れやデータ切り捨てが起こらないか確認するためのデータ。"),
-        (57, "空白を含むデータの検索や表示を確認するためのテストデータ。部分一致検索などにも利用できる。"),
-        (58, "NULL値や空データを扱う処理を確認するために利用するサンプルデータ。例外処理の確認にも役立つ。"),
-        (59, "検索機能の動作確認を行うためのテストデータ。タイトル検索や著者検索など複数条件を試す用途に向いている。"),
-        (60, "最終的な総合テスト用データ。登録、検索、貸出、予約など一連の機能確認に使用することを想定している。")
-    ]
-    with sqlite3.connect('lib_sys.db') as conn:
-        cur = conn.cursor()
-        cur.executemany(
-                    """INSERT INTO zosho
-                    (id,name_id,author_id,publisher_id,textsource_id,isbn,kashidashi,kinsho,yoyaku) 
-                    VALUES (?,?,?,?,?,?,?,?,?)
-                    """,
-                    books
-                    )
-        cur.executemany(
-                    """INSERT INTO name
-                    (id,name) 
-                    VALUES (?,?)
-                    """,
-                    names
-                    )
-
-        cur.executemany(
-                    """INSERT INTO author
-                    (id,author) 
-                    VALUES (?,?)
-                    """,
-                    authors
-                    )
-        cur.executemany(
-                    """INSERT INTO publisher
-                    (id,publisher) 
-                    VALUES (?,?)
-                    """,
-                    publishers
-                    )
-
-        cur.executemany(
-                    """INSERT INTO textsource
-                    (id,textsource) 
-                    VALUES (?,?)
-                    """,
-                    texts
-                    )
-
-        conn.commit()
-
 def d_koushin(id,name,author,publisher,isbn,kashidashi,kinsho,yoyaku):
     with sqlite3.connect('lib_sys.db') as conn:
         cur = conn.cursor()
@@ -1114,4 +918,157 @@ def d_kinsho_kaizyo(isbn):
                         )
         conn.commit()
 
+def pre_insed_tf_tdf():
+    content = []
+    with sqlite3.connect('lib_sys.db') as conn:
+        cur = conn.cursor()
+        for d in range(count_book()):
+        # for d in range():
+            cur.execute(
+                    """
+                    SELECT
+                        textsource
+                    FROM
+                        textsource
+                    WHERE 
+                        id = ?
+                    """,(d+1,)
+                    )
+            conn.commit()
+            rows = cur.fetchall()
+            rows = rows[0]
+            rows = rows[0]
+            content.append(rows)
 
+
+    content = [" ".join(word_bunri(text))for text in content]
+    # 分かち書き済み
+    count_vect = CountVectorizer()
+    X_counts = count_vect.fit_transform(content)
+
+    tfidf_transformer = TfidfTransformer()
+    X_tfidf = tfidf_transformer.fit_transform(X_counts)
+
+    feature_names = count_vect.get_feature_names_out()
+
+    df = pd.DataFrame(X_tfidf.toarray(), columns=feature_names)
+    print(df)
+
+    return X_tfidf,content
+
+def insed_tf_tdf(word,X_tfidf,con):
+    #検索語の分かち書き
+    content = word_bunri(word)
+    content = rm_stopword(content)
+    print(content)
+
+    #総文書数を表示
+    rows = count_book()
+    tmp = 0.0
+    val = []
+    #文書の中から一つ選択（繰り返す）
+    for j in range(rows):
+        tmp = 0.0
+        #検索語の中から一つ選択（繰り返す）
+        for s in content:
+            #文書の中の分かち書きした単語を一つ選択して一致するか総当たりで見る
+            mask = np.array([s in doc for doc in con])
+            #1の要素の位置を返す（1の場所だけになる）
+            #タプルが返るため[0]
+            matched_indices = np.where(mask)[0]
+            for idx in matched_indices:
+                if X_tfidf[j,idx] == 0.0:
+                    tmp += 0
+                else:
+                    tmp += X_tfidf[j,idx]
+                    #桁数2で切り捨てたい
+                    tmp = math.floor(tmp * 10**2) / (10**2)
+        val.append(tmp)
+    scores = list(enumerate(val))
+    scores.sort(key=lambda x: x[1], reverse=True)
+    scores = [(i, float(score)) for i, score in scores]
+    return scores
+
+
+def huwatto(scores):
+
+    tmp = []
+
+    for score in scores:
+        tmp.append(score[0])
+
+    print("元データ")
+    print(tmp)
+
+    with sqlite3.connect('lib_sys.db') as conn:
+        cur = conn.cursor()
+
+        placeholders = ",".join(["?"] * len(tmp))
+        cur.execute(
+                    f"""
+                    SELECT name.name,author.author,publisher.publisher,zosho.isbn,zosho.kashidashi,zosho.yoyaku
+                    FROM zosho
+                    JOIN name 
+                    ON zosho.name_id = name.id
+                    JOIN author
+                    ON zosho.author_id = author.id
+                    JOIN publisher
+                    ON zosho.publisher_id = publisher.id
+                    WHERE zosho.id IN ({placeholders})
+                    """,(tmp)
+                    )
+        rows = cur.fetchall()
+        return rows
+
+def word_bunri(content):
+    tokenizer_obj = dictionary.Dictionary().create()
+    mode = tokenizer.Tokenizer.SplitMode.A
+    result = [m.surface() for m in tokenizer_obj.tokenize(content, mode)]
+    return result 
+
+def count_book():
+    with sqlite3.connect('lib_sys.db') as conn:
+        cur = conn.cursor()
+        cur.execute(
+                    """
+                    SELECT id
+                    FROM zosho
+                    ORDER BY id DESC
+                    LIMIT 1
+                    """
+                    )
+        conn.commit()
+        rows = cur.fetchall()
+        rows = rows[0]
+        row = rows[0]
+    return row
+
+def rm_stopword(tokens):
+    # フィルタの初期化
+    custom_wordlist = []
+    filter = JaStopwordFilter(
+        convert_full_to_half=True,  # 全角文字を半角文字に変換
+        use_slothlib=True,         # SlothLibのストップワードを使用
+        filter_length=1,           # 文字数が1以下のトークンを削除
+        use_date=True,             # 日付形式のトークンを削除
+        use_numbers=True,          # 数字のトークンを削除
+        use_symbols=True,          # 記号を削除
+        use_spaces=True,           # 空白トークンを削除
+        use_emojis=True,           # 絵文字を削除
+        custom_wordlist=custom_wordlist  # ユーザー定義ストップワードを追加
+    )
+
+    # トークンをフィルタリング
+    filtered_tokens = filter.remove(tokens)
+    print("#################")
+    print(filtered_tokens) 
+    return filtered_tokens
+
+def ashikiri(scores):
+    print(scores)
+    print(len(scores))
+    scores = [score for score in scores if score[1] > 1.0]    
+    print(";;;;;;;;;;;;;;;;;;;")
+    print(len(scores))
+    print(scores)
+    return scores

@@ -5,6 +5,7 @@ import sqlite3
 import re
 import json
 import requests
+import tsuika
 
 def datapost():
     if request.method == 'POST':
@@ -43,12 +44,29 @@ def huwatto_post():
 
 app = Flask(__name__)
 
+# @app.route("/")
+# def login_home():
+#     main.maketable()
+#     tsuika.pre_tsuika()
+#     return render_template("user/login_home.html")
+
+# @app.route("/create_account")
+# def create_account():
+#     return render_template("user/create_account.html")
+
 #index.html
+# @app.route("/index")
 @app.route("/")
 def index():
+    # password = request.form["password"]
+    # id = request.form["id"]
+    # if name:
+    #     name = request.form["name"]
     main.maketable()
-    main.pre_tsuika()
+    tsuika.pre_tsuika()
+    # main.create_account()
     return render_template("index.html")
+    # return render_template("index.html",name=name)
 
 #user.html
 @app.route("/user")
@@ -183,7 +201,24 @@ def base(btitle):
             s_kashikari = row[5]
             s_yoyaku = row[7]
 
-    return render_template("user/base.html",base_title = s_name,title = s_name,author = s_author,publisher = s_publisher,isbn = s_isbn,kashikari = s_kashikari,yoyaku = s_yoyaku)
+        cur.execute(
+            """
+            SELECT
+                textsource
+            FROM
+                textsource
+            WHERE
+                id = ?
+            """,(f"{s_id}",)
+        )
+        rows = cur.fetchall()
+
+        rows = rows[0]
+        row = rows[0]
+
+        s_naiyou = row
+
+    return render_template("user/base.html",base_title = s_name,title = s_name,author = s_author,publisher = s_publisher,isbn = s_isbn,kashikari = s_kashikari,yoyaku = s_yoyaku,naiyou = s_naiyou)
 
 #search.html
 @app.route("/base_staff_search/<btitle>")
@@ -556,8 +591,13 @@ def huwatto():
 
 @app.route("/huwatto_search_result", methods=["GET", "POST"])
 def huwatto_search_result():
-    content = huwatto_post()
-    rows = main.huwatto(content)
+    text = huwatto_post()
+    X_tfidf,content = main.pre_insed_tf_tdf()
+    scores = main.insed_tf_tdf(text,X_tfidf,content)
+    scores = main.ashikiri(scores)
+    print(scores)
+    rows = main.huwatto(scores)
+    print(rows)
     return render_template("user/huwatto_search_result.html",rows = rows)
 
 
