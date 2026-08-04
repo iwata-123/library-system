@@ -28,52 +28,35 @@ import numpy as np
 import pandas as pd
 
 
-
-#ユーザーの概念をつくる
-class User:
-    name = ""
-    id = ""
-    password = ""
-    def __init__(self, name :str , id :str , password : str):
-        n = name.replace(' ','\n','\t','　')
-        i = id.replace(' ','\n','\t','　')
-        p = password.replace(' ','\n','\t','　')
-        self.name = n
-        self.id = i
-        self.password = p
-
-    def login(self,e_id,e_password):
-        if self.id != e_id :
-            print("idが違います")
-        elif self.password != e_password:
-            print("passwordが違います")
-        else:
-            print("ようこそ")
-
+#文章を入力して検索ができるモード
 def huwatto(content,conleng):
-    #sudachi.pyから始めている
-    # tokenizer_obj = dictionary.Dictionary().create()
-    # # 複数粒度分割
-    # mode = tokenizer.Tokenizer.SplitMode.A
-    # print ([m.surface() for m in tokenizer_obj.tokenize(content, mode)])
-    #contentをそのまま持ってきている.
-    #なのでスペースの空いた単語の列がそのまま来ている
-    #単語に分けれた
-    #conは分けたデータ
-    #
+        #sudachi.pyから始めている
+        # tokenizer_obj = dictionary.Dictionary().create()
+        # # 複数粒度分割
+        # mode = tokenizer.Tokenizer.SplitMode.A
+        # print ([m.surface() for m in tokenizer_obj.tokenize(content, mode)])
+        #contentをそのまま持ってきている.
+        #なのでスペースの空いた単語の列がそのまま来ている
+        #単語に分けれた
+        #conは分けたデータ
+    #文章を単語に分けている（計算　機　科学）
     con = word_bunri(content)
-    idf = idf_calc(con)
+    #文章の中で単語が出てくる頻度
     tf = tf_calc(con)
+    #文章の中でどれだけその単語が出てこないか
+    idf = idf_calc(con)
+    #idfとtfをかけた値
     tf_idf = tf_idf_calc(idf,tf,conleng)
-    mkmatrix(con,conleng,tf,idf,tf_idf)
-    #文書ごとの総tf_idf値を計算
-    #tf-idfをconの長さ分繰り返して計算
+    # テスト用
+    # mkmatrix(con,conleng,tf,idf,tf_idf)
+        #文書ごとの総tf_idf値を計算
+        #tf-idfをconの長さ分繰り返して計算
 
 
 
     return tf_idf
 
-#どれだけ蔵書があるかカウント
+    #どれだけ蔵書があるかカウント
 def count_book():
     with sqlite3.connect('lib_sys.db') as conn:
         cur = conn.cursor()
@@ -163,7 +146,6 @@ def idf_calc(con):
             idf = math.log(n/nt)
             result.append(idf)
         else:
-            print("0除算")
             idf = "error"
             result.append(idf)
     return result
@@ -181,7 +163,6 @@ def word_bunri(content):
     tokenizer_obj = dictionary.Dictionary().create()
     mode = tokenizer.Tokenizer.SplitMode.A
     result = [m.surface() for m in tokenizer_obj.tokenize(content, mode)]
-    print (result)
     return result 
 
 def tf_idf_calc(idf,tf,conleng):
@@ -204,8 +185,6 @@ def mkmatrix(con,conleng,tf,idf,tf_idf):
         matrix[i][3] = idf[i]
         matrix[i][4] = tf_idf[i]
         i += 1
-    for row in matrix:
-        print(row)
 
 
 def create_account(name,id,password):
@@ -360,14 +339,12 @@ def search_5(id=None, name=None, author=None, publisher=None, isbn=None):
 
 #機能する？id=?があるから絶対true
         if len(query1) > 19:
-            print("実行1")
             cur.execute(query1, values1)
             conn.commit()
             rows = cur.fetchall()
             #unsupported operand type(s) for %: 'builtin_function_or_method' and 'int'
             # タプル (tuple) に対して % 演算子を使おうとしたときに出ます。
             s_id = [row[0] for row in rows]
-            print(s_id)
             # s_isbn = [row[1] for row in rows]
             # s_kashidashi = [row[2] for row in rows]
             # s_yoyaku = [row[4] for row in rows]
@@ -411,10 +388,8 @@ def search_5(id=None, name=None, author=None, publisher=None, isbn=None):
                             )
                 conn.commit()
                 rows = cur.fetchall()
-                print(rows)
                 if rows != []:
                     return rows
-                print(rows)
 
 
         if len(query3) > 20:
@@ -438,10 +413,8 @@ def search_5(id=None, name=None, author=None, publisher=None, isbn=None):
                             )
                 conn.commit()
                 rows = cur.fetchall()
-                print(rows)
                 if rows != []:
                     return rows
-                print(rows)
 
 
         if len(query4) > 23:
@@ -464,9 +437,7 @@ def search_5(id=None, name=None, author=None, publisher=None, isbn=None):
                             )
                 conn.commit()
                 rows = cur.fetchall()
-                print(rows)
                 if rows != []:
-                    print(rows)
                     return rows
 
 
@@ -534,35 +505,28 @@ def search_8(id=None,name=None,author=None,publisher=None,isbn=None,kashidashi=N
         if conditions1 != []:
             # 
             query1 += " WHERE " + " AND ".join(conditions1)
-            print("今は" + query1)
         
 
         if conditions2 != []:
             #
             query2 += " WHERE " + " AND ".join(conditions2)
-            print("今は" + query2)
 
         if conditions3 != []:
             #
-            print(conditions3)
             query3 += " WHERE " + " AND".join(conditions3)
-            print("今は" + query3)
 
 
         if conditions4 != []:
             #
             query4 += " WHERE " + " AND".join(conditions4)
-            print("今は" + query4)
 
         if len(query1) > 19:
-            print("今実行１")
             cur.execute(query1, values1)
             conn.commit()
             rows = cur.fetchall()
             #unsupported operand type(s) for %: 'builtin_function_or_method' and 'int'
             # タプル (tuple) に対して % 演算子を使おうとしたときに出ます。
             s_id = [row[0] for row in rows]
-            print(s_id)
             for row_id in s_id:
                 cur.execute("""
                             PRAGMA table_info(zosho)
@@ -570,8 +534,6 @@ def search_8(id=None,name=None,author=None,publisher=None,isbn=None,kashidashi=N
                             )
                 conn.commit()
                 rows = cur.fetchall()
-                for row in rows:
-                    print(row)
                 cur.execute("""
                             SELECT name.name,author.author,publisher.publisher,zosho.isbn,zosho.kashidashi,zosho.kinsho,zosho.yoyaku
                             FROM zosho
@@ -586,13 +548,10 @@ def search_8(id=None,name=None,author=None,publisher=None,isbn=None,kashidashi=N
                             )
                 conn.commit()
                 rows = cur.fetchall()
-                print(rows)
                 if rows != []:
                     return rows
-                print(rows)
 
         if len(query2) > 18:
-            print("今実行２")
             cur.execute(query2, values2)
             conn.commit()
             rows= cur.fetchall()
@@ -604,8 +563,6 @@ def search_8(id=None,name=None,author=None,publisher=None,isbn=None,kashidashi=N
                             )
                 conn.commit()
                 rows = cur.fetchall()
-                for row in rows:
-                    print(row)
                 cur.execute("""
                             SELECT name.name,author.author,publisher.publisher,zosho.isbn,zosho.kashidashi,zosho.kinsho,zosho.yoyaku
                             FROM zosho
@@ -620,14 +577,11 @@ def search_8(id=None,name=None,author=None,publisher=None,isbn=None,kashidashi=N
                             )
                 conn.commit()
                 rows = cur.fetchall()
-                print(rows)
                 if rows != []:
                     return rows
-                print(rows)
 
 
         if len(query3) > 20:
-            print("今実行３")
             cur.execute(query3, values3)
             conn.commit()
             rows= cur.fetchall()
@@ -639,8 +593,6 @@ def search_8(id=None,name=None,author=None,publisher=None,isbn=None,kashidashi=N
                             )
                 conn.commit()
                 rows = cur.fetchall()
-                for row in rows:
-                    print(row)
                 cur.execute("""
                             SELECT name.name,author.author,publisher.publisher,zosho.isbn,zosho.kashidashi,zosho.kinsho,zosho.yoyaku
                             FROM zosho
@@ -655,14 +607,11 @@ def search_8(id=None,name=None,author=None,publisher=None,isbn=None,kashidashi=N
                             )
                 conn.commit()
                 rows = cur.fetchall()
-                print(rows)
                 if rows != []:
                     return rows
-                print(rows)
 
 
         if len(query4) > 23:
-            print("今実行４")
             cur.execute(query4, values4)
             conn.commit()
             rows= cur.fetchall()
@@ -674,8 +623,6 @@ def search_8(id=None,name=None,author=None,publisher=None,isbn=None,kashidashi=N
                             )
                 conn.commit()
                 rows = cur.fetchall()
-                for row in rows:
-                    print(row)
                 cur.execute("""
                             SELECT name.name,author.author,publisher.publisher,zosho.isbn,zosho.kashidashi,zosho.kinsho,zosho.yoyaku
                             FROM zosho
@@ -690,10 +637,8 @@ def search_8(id=None,name=None,author=None,publisher=None,isbn=None,kashidashi=N
                             )
                 conn.commit()
                 rows = cur.fetchall()
-                print(rows)
                 if rows != []:
                     return rows
-                print(rows)
 
 #まだ
 def hyozi():
@@ -707,7 +652,6 @@ def hyozi():
                         )
         conn.commit()
         rows1 = cur.fetchall()
-        print(rows1)
 
         cur.execute(
                         """
@@ -717,7 +661,6 @@ def hyozi():
                         )
         conn.commit()
         rows2 = cur.fetchall()
-        print(rows2)
         cur.execute(
                         """
                         SELECT *
@@ -726,8 +669,6 @@ def hyozi():
                         )
         conn.commit()
         rows3 = cur.fetchall()
-        print(rows3)
-
         cur.execute(
                         """
                         SELECT *
@@ -736,7 +677,6 @@ def hyozi():
                         )
         conn.commit()
         rows4 = cur.fetchall()
-        print(rows4)
 
     return rows1,rows2,rows3,rows4
 
@@ -804,7 +744,6 @@ def d_tsuika(name,author,publisher,isbn):
         conn.commit()
         #idを取得
         rowid = cur.lastrowid
-        print(rowid)
         cur.execute(
                     """
                     UPDATE zosho 
@@ -856,13 +795,9 @@ def d_sakuzyo(isbn):
                         )
         conn.commit()
         rows = cur.fetchall()
-        print(rows)
         if rows != []:
             id = rows[0]
             id = id[0]
-            print("\n")
-            print(id)
-            print("\n")
         else:
             return 0
         cur.execute(
@@ -952,7 +887,6 @@ def pre_insed_tf_tdf():
     feature_names = count_vect.get_feature_names_out()
 
     df = pd.DataFrame(X_tfidf.toarray(), columns=feature_names)
-    print(df)
 
     return X_tfidf,content
 
@@ -960,7 +894,6 @@ def insed_tf_tdf(word,X_tfidf,con):
     #検索語の分かち書き
     content = word_bunri(word)
     content = rm_stopword(content)
-    print(content)
 
     #総文書数を表示
     rows = count_book()
@@ -997,8 +930,6 @@ def huwatto(scores):
     for score in scores:
         tmp.append(score[0])
 
-    print("元データ")
-    print(tmp)
 
     with sqlite3.connect('lib_sys.db') as conn:
         cur = conn.cursor()
@@ -1060,15 +991,8 @@ def rm_stopword(tokens):
 
     # トークンをフィルタリング
     filtered_tokens = filter.remove(tokens)
-    print("#################")
-    print(filtered_tokens) 
     return filtered_tokens
 
 def ashikiri(scores):
-    print(scores)
-    print(len(scores))
     scores = [score for score in scores if score[1] > 1.0]    
-    print(";;;;;;;;;;;;;;;;;;;")
-    print(len(scores))
-    print(scores)
     return scores
