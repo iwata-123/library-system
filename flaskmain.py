@@ -1,11 +1,76 @@
-from flask import Flask,render_template,request,jsonify
+from flask import Flask,render_template,request,jsonify,session,redirect, url_for
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 import main
-import json
 import sqlite3
 import re
 import json
 import requests
 import tsuika
+from dotenv import load_dotenv
+import os
+from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import generate_password_hash
+from werkzeug.security import check_password_hash
+
+db = SQLAlchemy()
+
+app = Flask(__name__)
+
+load_dotenv()
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
+app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
+
+db.init_app(app)
+
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+
+
+# ユーザークラスを作成します（IDだけ使うシンプルな例）
+class User(db.Model, UserMixin):
+    id = db.Column(
+        db.Integer,
+        primary_key=True
+    )
+
+    username = db.Column(
+        db.String(50),
+        unique=True,
+        nullable=False
+    )
+
+    password_hash = db.Column(
+        db.String(200),
+        nullable=False
+    )
+
+    role = db.Column(
+        db.String(20),
+        default="user"
+    )
+
+    # Flask-LoginがセッションIDとして使用するため、必ず文字列で返す
+    def get_id(self):
+        return str(self.id)
+# ユーザー情報をIDから取得する関数（今はシンプルに戻すだけ）
+
+with app.app_context():
+    db.drop_all()
+    db.create_all()
+    admin = User(
+        username="admin",
+        password_hash=generate_password_hash("adminpass"),
+        role="admin"
+    )
+
+    db.session.add(admin)
+    db.session.commit()
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
 
 def datapost():
     if request.method == 'POST':
@@ -42,39 +107,80 @@ def huwatto_post():
         content = request.form["content"]
     return content
 
-app = Flask(__name__)
 
-# @app.route("/")
-# def login_home():
-#     main.maketable()
-#     tsuika.pre_tsuika()
-#     return render_template("user/login_home.html")
-
-# @app.route("/create_account")
-# def create_account():
-#     return render_template("user/create_account.html")
-
-#index.html
-# @app.route("/index")
 @app.route("/")
-def index():
-    # password = request.form["password"]
-    # id = request.form["id"]
-    # if name:
-    #     name = request.form["name"]
+def login():
     main.maketable()
     tsuika.pre_tsuika()
-    # main.create_account()
+
+    return render_template("user/login.html")
+
+@app.route("/login", methods=["POST"])
+def login_post():
+
+    username = request.form["username"]
+    password = request.form["password"]
+
+    user = User.query.filter_by(
+        username=username
+    ).first()
+
+    if user and check_password_hash(
+        user.password_hash,
+        password
+    ):
+        login_user(user)
+
+        if user.role == "admin":
+            return render_template("staff/staff.html")
+
+        else:
+            return render_template("user/user.html")
+
+@app.route("/user/signup", methods=["GET", "POST"])
+def register():
+
+    if request.method == "POST":
+        username = request.form["username"]
+        password = request.form["password"]
+
+        password_hash = generate_password_hash(password)
+
+        user = User(
+            username=username,
+            password_hash=password_hash,
+            role="user"
+        )
+
+        db.session.add(user)
+        db.session.commit()
+
+        return render_template("user/user.html")
+
+    return render_template("user/signup.html")
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return render_template('user/logout.html')
+
+
+@app.route("/index", methods=["GET", "POST"])
+def index():
     return render_template("index.html")
-    # return render_template("index.html",name=name)
 
 #user.html
-@app.route("/user")
+@app.route("/user", methods=["GET", "POST"])
 def user():
+    username = request.form["username"]
+    password = request.form["password"]
+    if username == "admin" and password == "adminpass":
+        return render_template("staff/staff.html")
     return render_template("user/user.html")
 
 #staff.html
-@app.route("/staff")
+@app.route("/staff", methods=["GET", "POST"])
 def staff():
     return render_template("staff/staff.html")
 
@@ -126,8 +232,6 @@ def base(btitle):
     s_yoyaku = ""
 
     with sqlite3.connect('lib_sys.db') as conn:
-        print("今")
-        print(btitle)
         #クリックした本のタイトルを取得
         cur = conn.cursor()
         cur.execute(
@@ -143,8 +247,6 @@ def base(btitle):
                         
         conn.commit()
         rows = cur.fetchall()
-        print("今")
-        print(rows)
         #authorの取得
         for row in rows:
             s_id = row[0]
@@ -196,7 +298,6 @@ def base(btitle):
         rows = cur.fetchall()
         
         for row in rows:
-            print(row)
             s_isbn = row[4]
             s_kashikari = row[5]
             s_yoyaku = row[7]
@@ -301,13 +402,7 @@ def get_data():
     isbn = ""
     try:
         isbndata = request.get_json()
-        print("＃")
-        print(isbndata)
         isbn = isbndata.get("number")
-        print("＃")
-        print(type(isbn))
-        print("＃")
-        print(isbn)
         isbn += '%'
         with sqlite3.connect('lib_sys.db') as conn:
             cur = conn.cursor()
@@ -320,24 +415,15 @@ def get_data():
                         )
             conn.commit()
             data = cur.fetchall()
-            print(data)
             # [(1, '978-9-87-654321-0'), (3, '978-1-99-443210-7'), (5, '978-3-61-559004-9'), (7, '978-8-02-199873-4'), (9, '978-6-14-770045-1')]
             for name_id in data:
-                print(name_id)
                 _ = name_id[:1]
-                print(_)
                 name_data.append(_)
-                print(name_data)
-            print(name_data)            
             for d_isbn in data:
                 x = d_isbn[1:2]
                 x = x[0]
                 isbn_data.append(x)
-                print(isbn_data)
-            print(isbn_data)
-            print(name_data)
             for namae in name_data:
-                print(namae)
                 namae = namae[0]
                 cur.execute("""
                             SELECT name
@@ -347,30 +433,11 @@ def get_data():
                             )
                 conn.commit()
                 kouho = cur.fetchall()
-                print(kouho)
-                # kouho = kouho[0]
-                # kouho = kouho[0]
-                print("今２")
-                print(kouho)
                 values.append(kouho)
-            print(values)
-            # v_len = len(values)
-            # print("今")
-            # print(v_len)
-            # str_list = range(v_len)
-            # print(str_list)
-            # keys = list(map(str,str_list))
-            # print(keys)
             di = dict(zip(isbn_data,values))
-            print(di)
-            print("今")
-            print(jsonify(di))
             return jsonify(di)
     except Exception as e:
         d = str(e)
-        print(f"例外クラス: {e.__class__.__name__}")
-        print(f"エラーメッセージ: {e}")
-        print("!2")
         return jsonify(d)
 
 @app.route("/kashi_kakunin",methods=["GET", "POST"])
@@ -396,8 +463,6 @@ def kashi_kakunin():
                     )
         conn.commit()
         k_flg = cur.fetchall()
-        print("今")
-        print(k_flg)
         if k_flg == [(1,)]:
             return render_template("staff/kashikari/kashi.html",k_check = "禁書です",erflg = 2)
         if flg == []:
@@ -534,13 +599,11 @@ def kinsho_kakunin():
                     )
         conn.commit()
         rows = cur.fetchall()
-        print(rows)
         #必要な成分だけ取り出す
         if rows == []:
             return render_template("staff/kaihatsu/kaihatsu_kinsho.html",rows=rows,z_check="蔵書にありません")
         rows = rows[0]
         rows = rows[0]
-        print(rows)
         if rows == 1:
             return render_template("staff/kaihatsu/kaihatsu_kinsho.html",rows=rows,check="禁書登録されてます")
 
@@ -568,14 +631,11 @@ def kaizyo_kakunin():
                     )
         conn.commit()
         rows = cur.fetchall()
-        print("今")
-        print(rows)
         #必要な成分だけ取り出す
         if rows == []:
             return render_template("staff/kaihatsu/kaizyo_kakunin.html",rows=rows,z_check="蔵書にありません")
         rows = rows[0]
         rows = rows[0]
-        print(rows)
         if rows == 0:
             return render_template("staff/kaihatsu/kaizyo_kakunin.html",rows=rows,check="禁書解除されてます")
 
@@ -595,9 +655,7 @@ def huwatto_search_result():
     X_tfidf,content = main.pre_insed_tf_tdf()
     scores = main.insed_tf_tdf(text,X_tfidf,content)
     scores = main.ashikiri(scores)
-    print(scores)
     rows = main.huwatto(scores)
-    print(rows)
     return render_template("user/huwatto_search_result.html",rows = rows)
 
 
