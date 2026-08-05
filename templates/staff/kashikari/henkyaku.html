@@ -44,12 +44,12 @@
         <input type="submit" value="返却"><br>
     </form>
     {% if erflg == 1 %}
-      <div class="alert alert-danger">
+      <div class="alert alert-danger" id="popup">
         {{ check }}
       </div>
     {% endif %}
     {% if erflg == 0 %}
-      <div class="alert alert-danger">
+      <div class="alert alert-danger" id="popup">
         {{ check }}
       </div>
     {% endif %}
@@ -85,40 +85,24 @@
                 for (key in di){
                   console.log(key + ':' + di[key]);
                 }
-                // // text = "";
-                // for (let key in di){
-                //   text = text + di[key] + "\n"
-                // }
-                // console.log(typeof text)
-                // document.getElementById("dataDisplay").textContent = text;
-                //  let x = document.getElementById("dataDisplay")
-                //  x.innerHTML = '<label>' + text + '</label>';
                 for (let key in di){
-                  // console.log(key)
                   kouho = di[key];
                   console.log(kouho);
                   x.insertAdjacentHTML('afterbegin',`<button type="button" class="b" id="${key}" onclick="autofill()">${kouho}:${key}</button><br>`);
                   cnt += 1;
                 }
-                // console.log(cnt)
             })
             .catch(error => console.error("エラー:", error));
       }
       const text = document.getElementById("sendBtn");
       text.oninput = displayInput;
+      setTimeout(function() {
+          const popup = document.getElementById("popup");
+          if (popup) {
+              popup.style.display = "none";
+          }
+      }, 1000); 
       
-      // const fill = document.getElementById(`${key}`);
-      // const fill = document.getElementsByTagName('button');
-      // console.log(fill);
-
-      // const filldata = document.getElementById("sendBtn")
-      // document.getElementById("sendBtn").textContent = filldata;
-      // filldata.innerHTML = '<label>' + text + '</label>';
-      // for(let i=0;i<cnt;i++){
-      //   const fill = document.getElementById(i);
-        
-      // }
-
     </script>
 
 

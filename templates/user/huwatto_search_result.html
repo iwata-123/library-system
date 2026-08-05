@@ -8,13 +8,26 @@
 
 </head>
 <header>
-    <nav class="navbar navbar-default">
-      <div class="container-fluid">
-        <div class="navbar-header border-bottom border-2 border-success" style="width: 100%;">
-          <a class="navbar-brand" href="{{url_for('user')}}">〇〇図書館</a>
+  <nav class="navbar navbar-default">
+    <div class="container-fluid">
+      <div class="d-flex align-items-center w-100">
+        
+        <div class="navbar-header border-bottom border-2 border-success">
+          <a class="navbar-brand" href="{{ url_for('user') }}">
+            〇〇図書館
+          </a>
         </div>
+
+        <a href="{{ url_for('account_info') }}" class="ms-auto">
+          <img src="{{ url_for('static', filename='userinfo.png') }}"
+               alt="プロフィール画像"
+               width="40"
+               height="40">
+        </a>
+
       </div>
-    </nav>
+    </div>
+  </nav>
 </header>
 
 <body>

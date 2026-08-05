@@ -5,16 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>予約確認</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
-
 </head>
 <header>
-    <nav class="navbar navbar-default">
-      <div class="container-fluid">
-        <div class="navbar-header">
-          <a class="navbar-brand" href="{{url_for('user')}}">〇〇図書館</a>
+  <nav class="navbar navbar-default">
+    <div class="container-fluid">
+      <div class="d-flex align-items-center w-100">
+        
+        <div class="navbar-header border-bottom border-2 border-success">
+          <a class="navbar-brand" href="{{ url_for('user') }}">
+            〇〇図書館
+          </a>
         </div>
+
+        <a href="{{ url_for('account_info') }}" class="ms-auto">
+          <img src="{{ url_for('static', filename='userinfo.png') }}"
+               alt="プロフィール画像"
+               width="40"
+               height="40">
+        </a>
+
       </div>
-    </nav>
+    </div>
+  </nav>
 </header>
 <body>
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>

@@ -71,7 +71,7 @@
 
     </form>
     {%if flg == 1%}
-        <div class="alert alert-danger">
+        <div class="alert alert-danger" id="popup">
             <p>すでにある本です</p>
         </div>
     {%endif%}
@@ -102,6 +102,12 @@
         c_p();
     }); 
 
+    setTimeout(function() {
+        const popup = document.getElementById("popup");
+        if (popup) {
+            popup.style.display = "none";
+        }
+    }, 1000); 
     
 </script>
 </body>

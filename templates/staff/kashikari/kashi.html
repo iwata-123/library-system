@@ -42,25 +42,21 @@
           </p>
         </label><br>
 
-          <!-- <textarea name="result" id="dataDisplay"></textarea> -->
-        <!-- <div id="dataDisplay" class="square">検索候補</div> -->
-        <!-- <input type="text" id="dataDisplay" class="square" value="検索候補"><br> -->
-
         <input type="submit" value="貸出">
     </form>
 
         {% if erflg == 0 %}
-          <div class="alert alert-danger">
+          <div class="alert alert-danger" id="popup">
             {{ check }}
           </div>
         {% endif %}
         {% if erflg == 1 %}
-          <div class="alert alert-danger">
+          <div class="alert alert-danger" id="popup">
             {{ check }}
           </div>
         {% endif %}
         {% if erflg == 2 %}
-          <div class="alert alert-danger">
+          <div class="alert alert-danger" id="popup">
             {{ k_check }}
           </div>
         {% endif %}
@@ -98,14 +94,6 @@
                 for (key in di){
                   console.log(key + ':' + di[key]);
                 }
-                // // text = "";
-                // for (let key in di){
-                //   text = text + di[key] + "\n"
-                // }
-                // console.log(typeof text)
-                // document.getElementById("dataDisplay").textContent = text;
-                //  let x = document.getElementById("dataDisplay")
-                //  x.innerHTML = '<label>' + text + '</label>';
                 for (let key in di){
                   // console.log(key)
                   kouho = di[key];
@@ -120,17 +108,12 @@
       const text = document.getElementById("sendBtn");
       text.oninput = displayInput;
       
-      // const fill = document.getElementById(`${key}`);
-      // const fill = document.getElementsByTagName('button');
-      // console.log(fill);
-
-      // const filldata = document.getElementById("sendBtn")
-      // document.getElementById("sendBtn").textContent = filldata;
-      // filldata.innerHTML = '<label>' + text + '</label>';
-      // for(let i=0;i<cnt;i++){
-      //   const fill = document.getElementById(i);
-        
-      // }
+      setTimeout(function() {
+          const popup = document.getElementById("popup");
+          if (popup) {
+              popup.style.display = "none";
+          }
+      }, 1000); 
 
     </script>
 

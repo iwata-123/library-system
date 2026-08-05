@@ -11,6 +11,8 @@ import os
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash
 from werkzeug.security import check_password_hash
+from functools import wraps
+from flask import abort
 
 db = SQLAlchemy()
 
@@ -73,6 +75,17 @@ with app.app_context():
     db.session.add(admin)
     db.session.commit()
 
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+
+        if current_user.role != "admin":
+            abort(403)
+
+        return f(*args, **kwargs)
+
+    return decorated_function
+
 # ユーザーをロード
 @login_manager.user_loader
 def load_user(user_id):
@@ -125,7 +138,7 @@ def login():
 def login_post():
     if request.method == "GET":
         return render_template("/user/login.html")
-
+    flg = 0 
     username = request.form["username"]
     password = request.form["password"]
     # ユーザーネームで検索をかける
@@ -144,8 +157,11 @@ def login_post():
     # 利用者ユーザーだったらこっち
         else:
             return render_template("user/user.html")
-    # ログイン失敗ならリダイレクト    
-    return redirect("/login")
+    # ログイン失敗ならリダイレクト
+    else:
+        flg = 1    
+    return render_template("user/login.html",flg=flg)
+
 # サインアップページ
 @app.route("/user/signup", methods=["GET", "POST"])
 def register():
@@ -165,7 +181,7 @@ def register():
         db.session.add(user)
         db.session.commit()
 
-        return render_template("user/user.html")
+        return render_template("user/login.html")
 
     return render_template("user/signup.html")
 
@@ -188,6 +204,8 @@ def user():
 
 #管理者ユーザーのホーム画面
 @app.route("/staff", methods=["GET", "POST"])
+@login_required
+@admin_required
 def staff():
     return render_template("staff/staff.html")
 
@@ -329,6 +347,8 @@ def base(btitle):
 
 #管理者用書籍詳細
 @app.route("/base_staff_search/<btitle>")
+@login_required
+@admin_required
 def base_staff_search(btitle):
     s_name = ""
     s_author = ""
@@ -364,6 +384,8 @@ def base_staff_search(btitle):
 
 #管理者側の検索結果
 @app.route("/staff_search_result", methods=["GET", "POST"])
+@login_required
+@admin_required
 def staff_search_result():
     id,name,author,publisher,isbn,kashidashi,kinsho,yoyaku = staff_datapost()
     rows = main.search_8(id,name,author,publisher,isbn,kashidashi,kinsho,yoyaku)
@@ -380,6 +402,8 @@ def search_result():
 
 #管理者側の検索フォーム
 @app.route("/staff_search")
+@login_required
+@admin_required
 def staff_search():
     return render_template("staff/staff_search.html")
 
@@ -453,6 +477,8 @@ def get_data():
 
 # 貸出確認用ページ
 @app.route("/kashi_kakunin",methods=["GET", "POST"])
+@login_required
+@admin_required
 def kashi_kakunin():
     isbn = request.form["isbn"]
     with sqlite3.connect('lib_sys.db') as conn:
@@ -498,6 +524,8 @@ def kashi_kakunin():
 
 # 貸出確認用ページ
 @app.route("/henkyaku_kakunin",methods=["GET", "POST"])
+@login_required
+@admin_required
 def henkyaku_kakunin():
     isbn = request.form["isbn"]
     with sqlite3.connect('lib_sys.db') as conn:
@@ -529,21 +557,29 @@ def henkyaku_kakunin():
 # 返却画面
 # 本来バーコードで入力すべきですがないので検索して返却しています
 @app.route("/henkyaku")
+@login_required
+@admin_required
 def henkyaku():
     return render_template("staff/kashikari/henkyaku.html")
 
 #開発者モードのホーム
 @app.route("/kaihatsu")
+@login_required
+@admin_required
 def kaihatsu():
     return render_template("staff/kaihatsu/kaihatsu.html")
 
 #書籍の追加ページ
 @app.route("/kaihatsu_tsuika")
+@login_required
+@admin_required
 def kaihatsu_tsuika():
     return render_template("staff/kaihatsu/kaihatsu_tsuika.html")
 
 # 書籍追加確認ページ
 @app.route("/tsuika_kakunin", methods=["GET", "POST"])
+@login_required
+@admin_required
 def tsuika_kakunin():
     if request.method == 'POST':
         name = request.form["name"]
@@ -560,11 +596,15 @@ def tsuika_kakunin():
 
 # 蔵書の削除
 @app.route("/kaihatsu_sakuzyo")
+@login_required
+@admin_required
 def kaihatsu_sakuzyo():
     return render_template("staff/kaihatsu/kaihatsu_sakuzyo.html")
 
 # 削除の確認
 @app.route("/sakuzyo_kakunin", methods=["GET", "POST"])
+@login_required
+@admin_required
 def sakuzyo_kakunin():
     if request.method == 'POST':
         isbn = request.form["isbn"]
@@ -576,12 +616,16 @@ def sakuzyo_kakunin():
 
 # 蔵書データの更新
 @app.route("/kaihatsu_koushin")
+@login_required
+@admin_required
 def kaihatsu_koushin():
     
     return render_template("staff/kaihatsu/kaihatsu_koushin.html")
 
 # 更新確認
 @app.route("/koushin_kakunin", methods=["GET", "POST"])
+@login_required
+@admin_required
 def koushin_kakunin():
     if request.method == 'POST':
         id = request.form["id"]
@@ -597,11 +641,15 @@ def koushin_kakunin():
 
 # 蔵書の禁書指定
 @app.route("/kaihatsu_kinsho")
+@login_required
+@admin_required
 def kaihatsu_kinsho():
     return render_template("staff/kaihatsu/kaihatsu_kinsho.html")
 
 # 禁書指定の確認
 @app.route("/kinsho_kakunin", methods=["GET", "POST"])
+@login_required
+@admin_required
 def kinsho_kakunin():
     isbn = request.form["isbn"]
     with sqlite3.connect('lib_sys.db') as conn:
@@ -630,12 +678,16 @@ def kinsho_kakunin():
 
 # 禁書登録を外す
 @app.route("/kaihatsu_kinsho_kaizyo", methods=["GET", "POST"])
+@login_required
+@admin_required
 def kaihatsu_kinsho_kaizyo():
 
     return render_template("staff/kaihatsu/kaihatsu_kinsho_kaizyo.html")
 
 # 禁書登録解除の確認
 @app.route("/kaizyo_kakunin", methods=["GET", "POST"])
+@login_required
+@admin_required
 def kaizyo_kakunin():
     isbn = request.form["isbn"]
     with sqlite3.connect('lib_sys.db') as conn:
@@ -681,6 +733,13 @@ def huwatto_search_result():
     # 検索をかける
     rows = main.huwatto(scores)
     return render_template("user/huwatto_search_result.html",rows = rows)
+# アカウントページ
+@app.route("/account_info", methods=["GET", "POST"])
+@login_required
+def account_info():
+    username = current_user.username
+
+    return render_template("user/account_info.html",username=username)
 
 
 if __name__ == "__main__":

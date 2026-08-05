@@ -43,10 +43,6 @@
       <div class="modal-body">
         <div>
             削除しますか？
-            <!-- 書名:<p id="f_name">書名</p>
-            著者:<p id="f_author">著者</p>
-            出版社:<p id="f_publisher">出版社</p>
-            ISBN:<p id="f_isbn">ISBN</p> -->
         </div>
     </div>
       <div class="modal-footer">
@@ -59,11 +55,19 @@
 
     </form>
         {% if erflg == 0 %}
-          <div class="alert alert-danger">
+          <div class="alert alert-danger" id="popup">
             {{ msg }}
           </div>
         {% endif %}
 
-    
+     <script>
+        setTimeout(function() {
+            const popup = document.getElementById("popup");
+            if (popup) {
+                popup.style.display = "none";
+            }
+        }, 1000); 
+    </script>
+   
 </body>
 </html>

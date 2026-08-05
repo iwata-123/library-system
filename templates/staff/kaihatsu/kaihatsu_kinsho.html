@@ -33,16 +33,24 @@
         </div>
     </form>
     {% if rows == [] %}
-      <div class="alert alert-danger">
+      <div class="alert alert-danger" id="popup">
         {{ z_check }}
       </div>
     {% endif %}
     {% if rows == 1 %}
-      <div class="alert alert-danger">
+      <div class="alert alert-danger" id="popup">
         {{ check }}
       </div>
     {% endif %}
 
+    <script>
+        setTimeout(function() {
+            const popup = document.getElementById("popup");
+            if (popup) {
+                popup.style.display = "none";
+            }
+        }, 1000); 
+    </script>
 
 </body>
 </html>
