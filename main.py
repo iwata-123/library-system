@@ -19,7 +19,6 @@
 import sqlite3
 from sudachipy import tokenizer
 from sudachipy import dictionary
-from collections import Counter
 import math
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from ja_stopword_filter import JaStopwordFilter

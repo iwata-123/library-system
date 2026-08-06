@@ -1,18 +1,14 @@
-from flask import Flask,render_template,request,jsonify,session,redirect, url_for
+from flask import Flask,render_template,request,jsonify,session,redirect, url_for,abort
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 import main
 import sqlite3
 import re
-import json
-import requests
 import tsuika
 from dotenv import load_dotenv
 import os
 from flask_sqlalchemy import SQLAlchemy
-from werkzeug.security import generate_password_hash
-from werkzeug.security import check_password_hash
+from werkzeug.security import generate_password_hash,check_password_hash
 from functools import wraps
-from flask import abort
 
 db = SQLAlchemy()
 
