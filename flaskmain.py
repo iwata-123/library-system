@@ -61,7 +61,7 @@ with app.app_context():
     db.drop_all()
     # テーブルの作成
     db.create_all()
-    # モデル
+    # 管理者用モデル
     admin = User(
         username="admin",
         password_hash=generate_password_hash("adminpass"),
@@ -86,6 +86,7 @@ def admin_required(f):
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
+
 # データを受け取る関数データ５つ用
 def datapost():
     if request.method == 'POST':
@@ -96,6 +97,7 @@ def datapost():
         isbn = request.form["isbn"]
 
     return id,name,author,publisher,isbn
+
 # データを受け取る関数データ８つ用
 def staff_datapost():
     if request.method == 'POST':

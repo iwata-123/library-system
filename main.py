@@ -25,7 +25,8 @@ from ja_stopword_filter import JaStopwordFilter
 import numpy as np
 import pandas as pd
 
-# 自力で一から実装中
+# tf-idf検索を自力で一から実装中（ 28行目から187行目まで）
+# 既存機能があるが勉強のため自分で一から実装している
 #=====================================================================================================
 #文章を入力して検索ができるモード
 def huwatto(content,conleng):
@@ -185,7 +186,25 @@ def count_book():
 
 #=========================================================================
 
-# tf-idfの準備
+
+
+# -------------------------------------------------
+# メソッド名：pre_insed_tf_tdf
+# 引数　：なし
+# 返却値：X_tfidf (tf-idfを計算、正規化後のデータ),
+#        content（検索ワードからスペースを除去してリストにしたもの） 
+#
+# 処理の説明
+# ライブラリになっているtf-idfの前処理
+#       単語を語の区切りで分けて
+#       出現回数を調べ
+#       ベクトルにして
+#       tf-idfを計算、正規化
+#       見出し語の取得
+# をしています
+# 全書籍にすることでどんな単語がどれくらい入っているか
+# ベクトルの形式で保存しておいています
+# -------------------------------------------------
 def pre_insed_tf_tdf():
     content = []
     with sqlite3.connect('lib_sys.db') as conn:
@@ -222,9 +241,24 @@ def pre_insed_tf_tdf():
     # 見出し語の取得
     feature_names = count_vect.get_feature_names_out()
     # 表示
+    # 開発用
     df = pd.DataFrame(X_tfidf.toarray(), columns=feature_names)
 
     return X_tfidf,content
+
+
+
+# -------------------------------------------------
+# メソッド名：insed_tf_tdf
+# 引数　：word（検索語）
+#        X_tfidf（tf-idfを計算、正規化後のデータ）
+#        con（全文書を前処理してベクトル化したもの）
+# 返却値：scores（tf-idf計算結果）
+# 処理の説明：
+# 検索した単語に対して語の区切りで分けて
+# 総文書数を計算して
+# 文書ごとに検索語を一つずつあるか検索をかける
+# -------------------------------------------------
 
 def insed_tf_tdf(word,X_tfidf,con):
     #検索語の分かち書き
@@ -258,7 +292,14 @@ def insed_tf_tdf(word,X_tfidf,con):
     scores = [(i, float(score)) for i, score in scores]
     return scores
 
-# tf-idf検索
+# -------------------------------------------------
+# メソッド名：huwatto
+# 引数　：scores（文書ごとのtf-idfの結果）
+# 返却値：rows（検索クエリの結果）
+# 処理の説明
+# tf-idfの結果がリストなのでほしい情報を一つのリストにする
+# そのリスト検索クエリを実行
+# -------------------------------------------------
 def huwatto(scores):
 
     tmp = []
@@ -287,14 +328,32 @@ def huwatto(scores):
         rows = cur.fetchall()
         return rows
 
-# 文章を単語に
+
+
+# -------------------------------------------------
+# メソッド名：word_bunri
+# 引数　：content（検索ワードや文書の内容（textsource））
+# 返却値：result （文章を語の区切りで分けた結果）
+# 処理の説明
+# sudachi.pyというライブラリを用いて文章を分ける
+# -------------------------------------------------
 def word_bunri(content):
     tokenizer_obj = dictionary.Dictionary().create()
     mode = tokenizer.Tokenizer.SplitMode.A
     result = [m.surface() for m in tokenizer_obj.tokenize(content, mode)]
     return result 
 
-# ストップワード（は、とか、を、とか検索語彙としてひっかかってほしくないワード）
+
+
+# -------------------------------------------------
+# メソッド名：rm_stopword
+# 引数　：tokens（）
+# 返却値：filtered_tokens（）
+# 処理の説明
+# 文章を語の区切りで分けたものからストップワード（は、とか、を、とか
+# 検索語彙としてひっかかってほしくないワード）
+# を除去
+# -------------------------------------------------
 def rm_stopword(tokens):
     # フィルタの初期化
     custom_wordlist = []
@@ -314,12 +373,27 @@ def rm_stopword(tokens):
     filtered_tokens = filter.remove(tokens)
     return filtered_tokens
 
-# 特定の値以下のデータを削除
+# -------------------------------------------------
+# メソッド名：ashikiri
+# 引数　：scores（tf-idfをした後の結果）
+# 返却値：scores（足切を設けた後の結果）
+# 処理の説明
+# 1.0未満のtf-idfの結果を削除
+# 
+# -------------------------------------------------
 def ashikiri(scores):
     scores = [score for score in scores if score[1] > 1.0]    
     return scores
 
-# テーブルを作る
+
+
+# -------------------------------------------------
+# メソッド名：maketable
+# 引数　：なし
+# 返却値：なし
+# 処理の説明
+# zosho,name,author,publisher,textsourceテーブルを作る処理
+# -------------------------------------------------
 def maketable():
     with sqlite3.connect('lib_sys.db') as conn:
         conn.row_factory = sqlite3.Row
@@ -391,7 +465,20 @@ def maketable():
         conn.commit()
 
 
-#5つの項目で検索をかける
+
+# -------------------------------------------------
+# メソッド名：search_5
+# 引数　：id （書籍ごとに振ってあるid）
+#        name（書籍の名前）
+#        author（著者の名前）
+#        publisher（出版社の名前）
+#        isbn（書籍に割り振られた国際規格の番号）
+# 返却値：rows（検索クエリの結果）
+# 処理の説明
+# idでの検索条件、nameでの検索条件、authorでの検索条件、publisherでの検索条件、isbnでの検索条件、
+# をそれぞれconditionsとvaluesに追加していき、conditionsが空でなかったらqueryにWHERE句を付与。
+# 条件が加わっていれば、検索クエリ実行
+# -------------------------------------------------
 def search_5(id=None, name=None, author=None, publisher=None, isbn=None):
     s_id = None
     # where句に書く条件をためておくためのリスト
@@ -480,6 +567,7 @@ def search_5(id=None, name=None, author=None, publisher=None, isbn=None):
                             )
                 conn.commit()
                 rows = cur.fetchall()
+                # rowsが空じゃなければ値を返す
                 if rows != []:
                     return rows
 
@@ -506,6 +594,7 @@ def search_5(id=None, name=None, author=None, publisher=None, isbn=None):
                 conn.commit()
                 rows = cur.fetchall()
                 if rows != []:
+                # rowsが空じゃなければ値を返す
                     return rows
 
         # 条件が加わっていればクエリ実行
@@ -530,6 +619,7 @@ def search_5(id=None, name=None, author=None, publisher=None, isbn=None):
                             )
                 conn.commit()
                 rows = cur.fetchall()
+                # rowsが空じゃなければ値を返す
                 if rows != []:
                     return rows
 
@@ -555,13 +645,30 @@ def search_5(id=None, name=None, author=None, publisher=None, isbn=None):
                             )
                 conn.commit()
                 rows = cur.fetchall()
+                # rowsが空じゃなければ値を返す
                 if rows != []:
                     return rows
 
 
 
 
-#8つの項目で検索をかける
+# -------------------------------------------------
+# メソッド名：search_8
+# 引数　：id（書籍ごとのに振ってあるid）
+#        name（書籍の名前）
+#        author（著者の名前）
+#        publisher（出版社の名前）
+#        isbn（書籍に割り振られた国際規格の番号）
+#        kashidashi（貸し出しているか判別するフラグ）
+#        kinsho（禁書になってるか判断するフラグ）
+#        yoyaku（予約されているか判断するフラグ）
+# 返却値：rows（検索クエリの実行結果）
+# 処理の説明
+# idでの検索条件、nameでの検索条件、authorでの検索条件、publisherでの検索条件、isbnでの検索条件、kashidashiでの検索条件、
+# kinshoでの検索条件、yoyakuでの検索条件、
+# をそれぞれconditionsとvaluesに追加していき、conditionsが空でなかったらqueryにWHERE句を付与。
+# 条件が加わっていれば、検索クエリ実行
+# -------------------------------------------------
 def search_8(id=None,name=None,author=None,publisher=None,isbn=None,kashidashi=None,kinsho=None,yoyaku=None):
     s_id = None
     # where句に書く条件をためておくためのリスト
@@ -757,47 +864,23 @@ def search_8(id=None,name=None,author=None,publisher=None,isbn=None,kashidashi=N
                 if rows != []:
                     return rows
 
-# テスト用　テーブルの中身をコンソールに表示する用だったもの
-def hyozi():
-    with sqlite3.connect('lib_sys.db') as conn:
-        cur = conn.cursor()
-        cur.execute(
-                        """
-                        SELECT *
-                        FROM zosho
-                        """
-                        )
-        conn.commit()
-        rows1 = cur.fetchall()
 
-        cur.execute(
-                        """
-                        SELECT *
-                        FROM name
-                        """
-                        )
-        conn.commit()
-        rows2 = cur.fetchall()
-        cur.execute(
-                        """
-                        SELECT *
-                        FROM author
-                        """
-                        )
-        conn.commit()
-        rows3 = cur.fetchall()
-        cur.execute(
-                        """
-                        SELECT *
-                        FROM publisher
-                        """
-                        )
-        conn.commit()
-        rows4 = cur.fetchall()
 
-    return rows1,rows2,rows3,rows4
-
-#データベースの内容の更新
+# -------------------------------------------------
+# メソッド名：d_koushin
+# 引数　：id,name,author,publisher,isbn,kashidashi,kinsho,yoyak
+# 返却値：なし
+# 処理の説明
+# zoshoテーブルでid（主キーのid）,name_id（nameテーブルとリレーションが貼ってある）,
+# author_id（authorテーブルとリレーションが貼ってある）,
+# publisher_id（publisherテーブルとリレーションが貼ってある）,
+# isbn（書籍に割り振られた国際規格の番号）,kashidashi（貸し出しているかのフラグ）,
+# kinsho（禁書登録になってるかのフラグ）,yoyaku（予約済みかのフラグ）
+# nameテーブル、id（zoshoテーブルとリレーションが貼ってある）,name（本の名前）
+# authorテーブル、id（zoshoテーブルとリレーションが貼ってある）,author（著者名）
+# publisherテーブルからid（zoshoテーブルとリレーションが貼ってある）,publisher（出版社名）
+# を更新
+# -------------------------------------------------
 def d_koushin(id,name,author,publisher,isbn,kashidashi,kinsho,yoyaku):
     with sqlite3.connect('lib_sys.db') as conn:
         cur = conn.cursor()
@@ -899,7 +982,16 @@ def d_tsuika(name,author,publisher,isbn):
         conn.commit()
         flg = 0
         return flg 
-#書籍データの削除用
+    
+
+# -------------------------------------------------
+# メソッド名：d_sakuzyo
+# 引数　：isbn　（書籍に割り振られた国際規格の番号）
+# 返却値：0 / 1 （蔵書にあるかないかのフラグ）
+# 処理の説明
+# zoshoテーブル , nameテーブル , authorテーブル , publisherテーブルから
+# 対象の書籍データの削除処理を行う。
+# -------------------------------------------------
 def d_sakuzyo(isbn):
     with sqlite3.connect('lib_sys.db') as conn:
         cur = conn.cursor()
@@ -949,7 +1041,13 @@ def d_sakuzyo(isbn):
         conn.commit()
         return 1
 
-#禁書登録用
+# -------------------------------------------------
+# メソッド名：d_kinsho
+# 引数　：isbn（書籍に割り振られた国際規格の番号）
+# 返却値：なし
+# 処理の説明
+# isbnで蔵書検索をかけて検索をかけた書籍に対して禁書登録をする
+# -------------------------------------------------
 def d_kinsho(isbn):
     with sqlite3.connect('lib_sys.db') as conn:
         cur = conn.cursor()
@@ -961,7 +1059,13 @@ def d_kinsho(isbn):
                         )
         conn.commit()
 
-# 禁書登録の解除用
+# -------------------------------------------------
+# メソッド名：d_kinsho_kaizyo
+# 引数　：isbn（書籍に割り振られた国際規格の番号）
+# 返却値：なし
+# 処理の説明
+# isbnで蔵書検索をかけて検索をかけた書籍に対して禁書登録解除をする
+# -------------------------------------------------
 def d_kinsho_kaizyo(isbn):
     with sqlite3.connect('lib_sys.db') as conn:
         cur = conn.cursor()
@@ -973,3 +1077,44 @@ def d_kinsho_kaizyo(isbn):
                         )
         conn.commit()
 
+
+
+# テスト用　テーブルの中身をコンソールに表示する用だったもの
+def hyozi():
+    with sqlite3.connect('lib_sys.db') as conn:
+        cur = conn.cursor()
+        cur.execute(
+                        """
+                        SELECT *
+                        FROM zosho
+                        """
+                        )
+        conn.commit()
+        rows1 = cur.fetchall()
+
+        cur.execute(
+                        """
+                        SELECT *
+                        FROM name
+                        """
+                        )
+        conn.commit()
+        rows2 = cur.fetchall()
+        cur.execute(
+                        """
+                        SELECT *
+                        FROM author
+                        """
+                        )
+        conn.commit()
+        rows3 = cur.fetchall()
+        cur.execute(
+                        """
+                        SELECT *
+                        FROM publisher
+                        """
+                        )
+        conn.commit()
+        rows4 = cur.fetchall()
+
+    return rows1,rows2,rows3,rows4
