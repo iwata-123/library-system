@@ -881,7 +881,7 @@ def search_8(id=None,name=None,author=None,publisher=None,isbn=None,kashidashi=N
 # publisherテーブルからid（zoshoテーブルとリレーションが貼ってある）,publisher（出版社名）
 # を更新
 # -------------------------------------------------
-def d_koushin(id,name,author,publisher,isbn,kashidashi,kinsho,yoyaku):
+def d_koushin(id,name,author,publisher,isbn,kashidashi,kinsho,yoyaku,textsource):
     with sqlite3.connect('lib_sys.db') as conn:
         cur = conn.cursor()
         cur.execute(
@@ -912,10 +912,17 @@ def d_koushin(id,name,author,publisher,isbn,kashidashi,kinsho,yoyaku):
                     (f"{id}",f"{publisher}",f"{id}")
                     )
         conn.commit()
+        cur.execute(
+                    """
+                    UPDATE textsource SET id = ?,textsource = ? WHERE id = ?
+                    """,
+                    (f"{id}",f"{textsource}",f"{id}")
+                    )
+        conn.commit()
 
 
 #書籍の追加用
-def d_tsuika(name,author,publisher,isbn):
+def d_tsuika(name,author,publisher,isbn,textsource):
     with sqlite3.connect('lib_sys.db') as conn:
         cur = conn.cursor()
         #同じ本がないかチェック
@@ -980,6 +987,15 @@ def d_tsuika(name,author,publisher,isbn):
                         )
 
         conn.commit()
+        cur.execute(
+                        """INSERT INTO textsource
+                        (textsource) 
+                        VALUES (?)
+                        """,
+                        (f"{textsource}",)
+                        )
+
+        conn.commit()
         flg = 0
         return flg 
     
@@ -987,7 +1003,7 @@ def d_tsuika(name,author,publisher,isbn):
 # -------------------------------------------------
 # メソッド名：d_sakuzyo
 # 引数　：isbn　（書籍に割り振られた国際規格の番号）
-# 返却値：0 / 1 （蔵書にあるかないかのフラグ）
+# 返却値：  1 （蔵書にあるかないかのフラグ、呼び出し先でflg==0を上書きする）
 # 処理の説明
 # zoshoテーブル , nameテーブル , authorテーブル , publisherテーブルから
 # 対象の書籍データの削除処理を行う。
@@ -1035,6 +1051,13 @@ def d_sakuzyo(isbn):
         cur.execute(
                         """
                         DELETE FROM publisher WHERE id = ?
+                        """,
+                        (f"{id}",)
+                        )
+        conn.commit()
+        cur.execute(
+                        """
+                        DELETE FROM textsource WHERE id = ?
                         """,
                         (f"{id}",)
                         )

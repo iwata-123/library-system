@@ -12,7 +12,7 @@
     <nav class="navbar navbar-default">
       <div class="container-fluid">
         <div class="navbar-header border-bottom border-2 border-success" style="width: 100%;">
-          <a class="navbar-brand" href="{{url_for('user')}}">〇〇図書館</a>
+          〇〇図書館
         </div>
       </div>
     </nav>
@@ -43,11 +43,20 @@
   </form>
 
     {%if flg == 1%}
-        <div class="alert alert-danger">
+        <div class="alert alert-danger" id="popup">
             <p>ログイン失敗しました</p>
             <p>再度IDとパスワードをお確かめください</p>
         </div>
     {%endif%}
+
+    <script>
+        setTimeout(function() {
+            const popup = document.getElementById("popup");
+            if (popup) {
+                popup.style.display = "none";
+            }
+        }, 1000); 
+    </script>
 
 
 </body>

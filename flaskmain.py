@@ -28,24 +28,33 @@ login_manager.init_app(app)
 login_manager.login_view = 'login'
 
 
+
+# -------------------------------------------------
+# クラス名：User
+# 引数　：db.Model（flask_loginを使うために必要）
+#        UserMixin（flask_loginを使うために必要）
+# 処理の説明
+# ユーザーを作るクラス
+# -------------------------------------------------
 # ユーザークラスの作成
 class User(db.Model, UserMixin):
+    # idカラムの作成
     id = db.Column(
         db.Integer,
         primary_key=True
     )
-
+    # usernameカラムの作成
     username = db.Column(
         db.String(50),
         unique=True,
         nullable=False
     )
-
+    # password用
     password_hash = db.Column(
         db.String(200),
         nullable=False
     )
-
+    # 権限設定
     role = db.Column(
         db.String(20),
         default="user"
@@ -56,6 +65,11 @@ class User(db.Model, UserMixin):
         return str(self.id)
 # ユーザー情報をIDから取得する関数（今はシンプルに戻すだけ）
 
+
+
+#-----------------------------------------------------------------------------
+#管理者アカウントの作成
+#-----------------------------------------------------------------------------
 with app.app_context():
     # 起動時テーブルを削除（開発用）
     db.drop_all()
@@ -71,23 +85,55 @@ with app.app_context():
     db.session.add(admin)
     db.session.commit()
 
+
+
+# -------------------------------------------------
+# メソッド名：admin_required
+# 引数　：f（受け取る関数）
+# 返却値：decorated_function（処理後の関数）
+# 処理の説明
+# アカウントが管理者でなかったらアクセス禁止にする
+# 管理者だったらそのままアクセスを許可する
+# -------------------------------------------------
 def admin_required(f):
+    # 元の関数の名前や説明などの情報を保持
     @wraps(f)
     def decorated_function(*args, **kwargs):
 
         if current_user.role != "admin":
+            # アクセス禁止にする
             abort(403)
 
         return f(*args, **kwargs)
 
     return decorated_function
 
+
+
+# -------------------------------------------------
+# メソッド名：load_user
+# 引数　：user_id（検索をかけたいuser_id）
+# 返却値：User.query.get(int(user_id))　　　（user_idで検索をかけた結果得られたユーザーアカウント）
+# 処理の説明
 # ユーザーをロード
+# ------------------------------------------------- 
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# データを受け取る関数データ５つ用
+
+
+# -------------------------------------------------
+# メソッド名：datapost
+# 引数　：なし
+# 返却値：id （書籍ごとに振ってあるid）
+#        name（書籍の名前）
+#        author（著者の名前）
+#        publisher（出版社の名前）
+#        isbn（書籍に割り振られた国際規格の番号）
+# 処理の説明
+# id,name,author,publisher,isbnをhtmlから受け取る
+# -------------------------------------------------
 def datapost():
     if request.method == 'POST':
         id = request.form["id"]
@@ -98,7 +144,22 @@ def datapost():
 
     return id,name,author,publisher,isbn
 
-# データを受け取る関数データ８つ用
+
+
+# -------------------------------------------------
+# メソッド名：staff_datapost
+# 引数　：なし
+# 返却値：id（書籍ごとのに振ってあるid）
+#        name（書籍の名前）
+#        author（著者の名前）
+#        publisher（出版社の名前）
+#        isbn（書籍に割り振られた国際規格の番号）
+#        kashidashi（貸し出しているか判別するフラグ）
+#        kinsho（禁書になってるか判断するフラグ）
+#        yoyaku（予約されているか判断するフラグ）
+# 処理の説明
+# id,name,author,publisher,isbn,kashidashi,kinsho,yoyakuをhtmlから受け取る
+# -------------------------------------------------
 def staff_datapost():
     if request.method == 'POST':
         id = request.form["id"]
@@ -118,20 +179,49 @@ def staff_datapost():
             
 
     return id,name,author,publisher,isbn,kashidashi,kinsho,yoyaku
-# tf-idfサーチ用
+
+
+
+# -------------------------------------------------
+# メソッド名：huwatto_post
+# 引数　：なし
+# 返却値：content（検索ワード）
+# 処理の説明
+# contentをhtmlから受け取る
+# -------------------------------------------------
 def huwatto_post():
     if request.method == 'POST':
         content = request.form["content"]
     return content
 
+
+
+# -------------------------------------------------
+# メソッド名：login
+# 引数　：なし
+# 返却値：render_template("user/login.html")　　　（ログインページの描画）
+# 処理の説明
 # テーブル追加用
+# -------------------------------------------------
 @app.route("/")
 def login():
     main.maketable()
     tsuika.pre_tsuika()
 
     return render_template("user/login.html")
-# ログインページ
+
+
+
+# -------------------------------------------------
+# メソッド名：login_post
+# 引数　：なし
+# 返却値：render_template("/user/login.html")　　（ログイン画面へ）
+# redirect(url_for("staff"))　　（管理者ホーム画面へ）
+# redirect(url_for("user"))　　　（利用者ホーム画面へ）
+# render_template("user/login.html",flg=flg)　（ログイン失敗時ログイン画面へ）
+# 処理の説明
+# 
+# -------------------------------------------------
 @app.route("/login", methods=["GET", "POST"])
 def login_post():
     if request.method == "GET":
@@ -151,16 +241,25 @@ def login_post():
         login_user(user)
     # 管理者ユーザーだったらこっち
         if user.role == "admin":
-            return render_template("staff/staff.html")
+            return redirect(url_for("staff"))
     # 利用者ユーザーだったらこっち
         else:
-            return render_template("user/user.html")
-    # ログイン失敗ならリダイレクト
+            return redirect(url_for("user"))
+    # ログイン失敗なら、ログインページに戻す
     else:
         flg = 1    
     return render_template("user/login.html",flg=flg)
 
-# サインアップページ
+
+
+# -------------------------------------------------
+# メソッド名：register
+# 引数　：なし
+# 返却値：render_template("user/login.html")　　　（ログインページを描画）
+#       render_template("user/signup.html")　　　（サインアップに失敗したときリダイレクト）
+# 処理の説明
+# リクエストがポストなら、リクエストを受け取り、ユーザーのアカウントを生成、保存
+# -------------------------------------------------
 @app.route("/user/signup", methods=["GET", "POST"])
 def register():
 
@@ -183,31 +282,58 @@ def register():
 
     return render_template("user/signup.html")
 
-# ログアウト画面
+
+
+# -------------------------------------------------
+# メソッド名：logout
+# 引数　：なし
+# 返却値：render_template('user/logout.html')　　　（ログアウトしたときのログアウトと書かれているページを描画）
+# 処理の説明
+# ログアウト画面を描画
+# -------------------------------------------------
 @app.route('/logout')
 @login_required
 def logout():
     logout_user()
     return render_template('user/logout.html')
 
-# 利用者ユーザーのホーム画面
-@app.route("/user", methods=["GET", "POST"])
+
+
+# -------------------------------------------------
+# メソッド名：user
+# 引数　：なし
+# 返却値：render_template("user/user.html")     （利用者ユーザーのホーム画面を描画）
+# 処理の説明
+# 利用者ユーザーのホーム画面を描画
+# -------------------------------------------------
+@app.route("/user")
+@login_required
 def user():
-    username = request.form["username"]
-    password = request.form["password"]
-    # 管理者ユーザーかチェック
-    if username == "admin" and password == "adminpass":
-        return render_template("staff/staff.html")
     return render_template("user/user.html")
 
+
+# -------------------------------------------------
+# メソッド名：staff
+# 引数　：なし
+# 返却値：render_template("staff/staff.html")　　　（管理者ユーザーのホーム画面を描画）
+# 処理の説明
+# 利用者ユーザーのホーム画面を描画
+# -------------------------------------------------
 #管理者ユーザーのホーム画面
-@app.route("/staff", methods=["GET", "POST"])
+@app.route("/staff")
 @login_required
 @admin_required
 def staff():
     return render_template("staff/staff.html")
 
 
+# -------------------------------------------------
+# メソッド名：yoyaku
+# 引数　：btitle（予約しようとしている本の名前）
+# 返却値：render_template("user/yoyaku.html",cnt = cnt)　　　　（予約確認画面を描画）
+# 処理の説明
+# タイトルをもとに予約されているか調べ、予約されていなかったら予約フラグを立てる
+# -------------------------------------------------
 @app.route("/yoyaku/<btitle>", methods=["GET", "POST"])
 def yoyaku(btitle):
     cnt = 1
@@ -241,6 +367,18 @@ def yoyaku(btitle):
 
     return render_template("user/yoyaku.html",cnt = cnt)
 
+
+
+# -------------------------------------------------
+# メソッド名：base
+# 引数　：btitle　　（詳細の見たい本の名前）
+# 返却値：render_template("user/base.html",base_title = s_name,
+# title = s_name,author = s_author,publisher = s_publisher,
+# isbn = s_isbn,kashikari = s_kashikari,yoyaku = s_yoyaku,
+# naiyou = s_naiyou)　　　　　　　　　　（利用者用本の詳細ページを描画）
+# 処理の説明
+# 利用者用本の詳細ページを描画
+# -------------------------------------------------
 #書籍の詳細ページ
 @app.route("/base/<btitle>")
 def base(btitle):
@@ -343,7 +481,18 @@ def base(btitle):
 
     return render_template("user/base.html",base_title = s_name,title = s_name,author = s_author,publisher = s_publisher,isbn = s_isbn,kashikari = s_kashikari,yoyaku = s_yoyaku,naiyou = s_naiyou)
 
-#管理者用書籍詳細
+
+
+# -------------------------------------------------
+# メソッド名：base_staff_search
+# 引数　：btitle
+# 返却値：render_template("staff/base_staff_search.html",
+# base_title = s_name,title = s_name,
+# author = s_author,publisher = s_publisher,
+# isbn = s_isbn,kashikari = s_kashikari,yoyaku = s_yoyaku)　　　　（管理者用本の詳細ページを描画）
+# 処理の説明
+# 管理者用本の詳細ページを描画
+# -------------------------------------------------
 @app.route("/base_staff_search/<btitle>")
 @login_required
 @admin_required
@@ -380,7 +529,15 @@ def base_staff_search(btitle):
 
     return render_template("staff/base_staff_search.html",base_title = s_name,title = s_name,author = s_author,publisher = s_publisher,isbn = s_isbn,kashikari = s_kashikari,yoyaku = s_yoyaku)
 
-#管理者側の検索結果
+
+
+# -------------------------------------------------
+# メソッド名：staff_search_result
+# 引数　：なし
+# 返却値：render_template("staff/staff_search_result.html",rows = rows)　　　（管理者用の検索結果ページを生成）
+# 処理の説明 
+# データを受け取り、検索クエリを実行する
+# -------------------------------------------------
 @app.route("/staff_search_result", methods=["GET", "POST"])
 @login_required
 @admin_required
@@ -389,33 +546,73 @@ def staff_search_result():
     rows = main.search_8(id,name,author,publisher,isbn,kashidashi,kinsho,yoyaku)
     return render_template("staff/staff_search_result.html",rows = rows)
 
-# 利用者側の検索結果
+
+
+# -------------------------------------------------
+# メソッド名：search_result
+# 引数　：なし
+# 返却値：render_template("user/search_result.html",rows=rows)　　　　（利用者側の検索結果ページを描画）
+# 処理の説明
+# データを受け取り、検索クエリを実行する
+# -------------------------------------------------
 @app.route("/search_result", methods=["GET", "POST"])
 def search_result():
     id,name,author,publisher,isbn = datapost()
-    pattern = r"\d{3}+-[0-9\-]{9}+-\d{1}"
-    re.search(pattern,isbn)
     rows = main.search_5(id,name,author,publisher,isbn)
     return render_template("user/search_result.html",rows=rows)
 
-#管理者側の検索フォーム
+
+
+# -------------------------------------------------
+# メソッド名：staff_search
+# 引数　：なし
+# 返却値：render_template("staff/staff_search.html")　　　（管理者側の検索フォームを描画）
+# 処理の説明
+# 管理者側の検索フォームを描画
+# -------------------------------------------------
 @app.route("/staff_search")
 @login_required
 @admin_required
 def staff_search():
     return render_template("staff/staff_search.html")
 
-#利用者側の検索フォーム
+
+
+# -------------------------------------------------
+# メソッド名：search
+# 引数　：なし
+# 返却値：render_template("user/search.html")　　　　（利用者側の検索フォームを描画）
+# 処理の説明
+# 利用者側の検索フォームを描画
+# -------------------------------------------------
 @app.route("/search")
 def search():
     return render_template("user/search.html")
 
-#貸出画面
+
+
+# -------------------------------------------------
+# メソッド名：kashi
+# 引数　：なし
+# 返却値：render_template("staff/kashikari/kashi.html")　　　（貸出画面の描画）
+# 処理の説明
+# 貸出画面の描画
+# -------------------------------------------------
 # 本来バーコードで入力すべきですがないので検索して貸出しています
 @app.route("/kashi",methods=["GET", "POST"])
 def kashi():
     return render_template("staff/kashikari/kashi.html")
 
+
+
+# -------------------------------------------------
+# メソッド名：get_data
+# 引数　：なし
+# 返却値：jsonify(di)   （成功時辞書形式を返却）
+#         jsonify(d)　　（失敗時エラーを返す）
+# 処理の説明
+# isbnをjsonで受けとり、部分一致で検索本の名前で検索し直し
+# -------------------------------------------------
 # 検索候補用api
 # isbnで検索
 @app.route('/api/data',methods=["GET", "POST"])
@@ -473,7 +670,20 @@ def get_data():
         d = str(e)
         return jsonify(d)
 
-# 貸出確認用ページ
+# -------------------------------------------------
+# メソッド名：kashi_kakunin
+# 引数　：なし
+# 返却値：render_template("staff/kashikari/kashi.html",k_check = "禁書です",erflg = 2)　　　
+#        （禁書だったらはじく）
+#        render_template("staff/kashikari/kashi.html",check = "蔵書にありません",erflg = 0)
+# 　　　　（蔵書だったらはじく）
+#         render_template("staff/kashikari/kashi.html",check = "貸出済みです",erflg = 1)
+# 　　　　（貸出済みだったらはじく）
+#          render_template("staff/kashikari/kashi_kakunin.html")
+# 　　　　（成功時確認画面へ）
+# 処理の説明
+# 貸し出してるか禁書かをチェックしokだったら貸出済みに更新
+# -------------------------------------------------
 @app.route("/kashi_kakunin",methods=["GET", "POST"])
 @login_required
 @admin_required
@@ -520,7 +730,22 @@ def kashi_kakunin():
             conn.commit()
             return render_template("staff/kashikari/kashi_kakunin.html")
 
-# 貸出確認用ページ
+
+
+
+# -------------------------------------------------
+# メソッド名：henkyaku_kakunin
+# 引数　：なし
+# 返却値：render_template("staff/kashikari/henkyaku.html",check = "返却済みです",erflg = 1)　　　
+#        （返却済みだったらはじく）
+#        render_template("staff/kashikari/henkyaku.html",check = "蔵書にありません",erflg = 0)
+# 　　　　（蔵書だったらはじく）
+#         render_template("staff/kashikari/henkyaku_kakunin.html")
+# 　　　　（成功時確認画面へ）
+# 処理の説明
+# 返却済みか禁書かをチェックしokだったら返却済みに更新
+# -------------------------------------------------
+# 返却確認用ページ
 @app.route("/henkyaku_kakunin",methods=["GET", "POST"])
 @login_required
 @admin_required
@@ -552,7 +777,15 @@ def henkyaku_kakunin():
             conn.commit()
             return render_template("staff/kashikari/henkyaku_kakunin.html")
 
-# 返却画面
+
+
+# -------------------------------------------------
+# メソッド名：henkyaku
+# 引数　：なし
+# 返却値：render_template("staff/kashikari/henkyaku.html")　　　（返却画面の描画）
+# 処理の説明
+# 返却画面の描画
+# -------------------------------------------------
 # 本来バーコードで入力すべきですがないので検索して返却しています
 @app.route("/henkyaku")
 @login_required
@@ -560,21 +793,46 @@ def henkyaku_kakunin():
 def henkyaku():
     return render_template("staff/kashikari/henkyaku.html")
 
-#開発者モードのホーム
+
+
+# -------------------------------------------------
+# メソッド名：kaihatsu
+# 引数　：なし
+# 返却値：render_template("staff/kaihatsu/kaihatsu.html")　　　（管理者モードのホームを描画）
+# 処理の説明
+# 管理者モードのホームを描画
+# -------------------------------------------------
 @app.route("/kaihatsu")
 @login_required
 @admin_required
 def kaihatsu():
     return render_template("staff/kaihatsu/kaihatsu.html")
 
-#書籍の追加ページ
+
+
+# -------------------------------------------------
+# メソッド名：kaihatsu_tsuika
+# 引数　：なし
+# 返却値：render_template("staff/kaihatsu/kaihatsu_tsuika.html")　　　（書籍の追加ページを描画）
+# 処理の説明
+# 書籍の追加ページを描画
+# -------------------------------------------------
 @app.route("/kaihatsu_tsuika")
 @login_required
 @admin_required
 def kaihatsu_tsuika():
     return render_template("staff/kaihatsu/kaihatsu_tsuika.html")
 
-# 書籍追加確認ページ
+
+
+# -------------------------------------------------
+# メソッド名：tsuika_kakunin
+# 引数　：なし
+# 返却値：render_template("staff/kaihatsu/kaihatsu_tsuika.html",flg = flg)　　　（すでにある本だったらはじく）
+#        render_template("staff/kaihatsu/tsuika_kakunin.html")　　　　　　（成功時確認画面へ）
+# 処理の説明
+# データを受けとり、データがあったらはじく、そうでなかったら追加
+# -------------------------------------------------
 @app.route("/tsuika_kakunin", methods=["GET", "POST"])
 @login_required
 @admin_required
@@ -584,7 +842,8 @@ def tsuika_kakunin():
         author = request.form["author"]
         publisher = request.form["publisher"]
         isbn = request.form["isbn"]
-        flg = main.d_tsuika(name,author,publisher,isbn)
+        textsource = request.form["textsource"]
+        flg = main.d_tsuika(name,author,publisher,isbn,textsource)
         # データがあったらflgは1
         # すでにある本だったらはじく
         if flg == 1:
@@ -592,14 +851,33 @@ def tsuika_kakunin():
 
     return render_template("staff/kaihatsu/tsuika_kakunin.html")
 
-# 蔵書の削除
+
+
+# -------------------------------------------------
+# メソッド名：kaihatsu_sakuzyo
+# 引数　：なし
+# 返却値：render_template("staff/kaihatsu/kaihatsu_sakuzyo.html")　　（蔵書の削除ページを描画）
+# 処理の説明
+# 蔵書の削除ページを描画
+# -------------------------------------------------
 @app.route("/kaihatsu_sakuzyo")
 @login_required
 @admin_required
 def kaihatsu_sakuzyo():
     return render_template("staff/kaihatsu/kaihatsu_sakuzyo.html")
 
-# 削除の確認
+
+
+# -------------------------------------------------
+# メソッド名：sakuzyo_kakunin
+# 引数　：なし
+# 返却値：render_template("staff/kaihatsu/kaihatsu_sakuzyo.html",msg="蔵書にありません",erflg=0)  
+#        （蔵書になかったらはじく）  
+#        render_template("staff/kaihatsu/sakuzyo_kakunin.html")
+#　　　　　（成功時確認画面へ）
+# 処理の説明
+# isbnを受け取り蔵書になかったらはじくあったら確認画面へ
+# -------------------------------------------------
 @app.route("/sakuzyo_kakunin", methods=["GET", "POST"])
 @login_required
 @admin_required
@@ -612,7 +890,15 @@ def sakuzyo_kakunin():
 
     return render_template("staff/kaihatsu/sakuzyo_kakunin.html")
 
-# 蔵書データの更新
+
+
+# -------------------------------------------------
+# メソッド名：kaihatsu_koushin
+# 引数　：なし
+# 返却値：render_template("staff/kaihatsu/kaihatsu_koushin.html")　　　（蔵書データの更新を描画）
+# 処理の説明
+# 蔵書データの更新を描画
+# -------------------------------------------------
 @app.route("/kaihatsu_koushin")
 @login_required
 @admin_required
@@ -620,7 +906,15 @@ def kaihatsu_koushin():
     
     return render_template("staff/kaihatsu/kaihatsu_koushin.html")
 
-# 更新確認
+
+
+# -------------------------------------------------
+# メソッド名：koushin_kakunin
+# 引数　：なし
+# 返却値：render_template("staff/kaihatsu/koushin_kakunin.html")　　（更新確認画面を描画）
+# 処理の説明
+# データを受け取り更新をかける 
+# -------------------------------------------------
 @app.route("/koushin_kakunin", methods=["GET", "POST"])
 @login_required
 @admin_required
@@ -634,17 +928,39 @@ def koushin_kakunin():
         kashidashi = request.form["kashidashi"]
         kinsho = request.form["kinsho"]
         yoyaku =request.form["yoyaku"]
-        main.d_koushin(id,name,author,publisher,isbn,kashidashi,kinsho,yoyaku)
+        textsource = request.form["textsource"]
+        main.d_koushin(id,name,author,publisher,isbn,kashidashi,kinsho,yoyaku,textsource)
     return render_template("staff/kaihatsu/koushin_kakunin.html")
 
-# 蔵書の禁書指定
+
+
+# -------------------------------------------------
+# メソッド名：kaihatsu_kinsho
+# 引数　：なし
+# 返却値：render_template("staff/kaihatsu/kaihatsu_kinsho.html")　　（蔵書の禁書指定ページを描画）
+# 処理の説明
+# 蔵書の禁書指定ページを描画
+# -------------------------------------------------
 @app.route("/kaihatsu_kinsho")
 @login_required
 @admin_required
 def kaihatsu_kinsho():
     return render_template("staff/kaihatsu/kaihatsu_kinsho.html")
 
-# 禁書指定の確認
+
+
+# -------------------------------------------------
+# メソッド名：
+# 引数　：なし
+# 返却値：render_template("staff/kaihatsu/kaihatsu_kinsho.html",rows=rows,z_check="蔵書にありません")
+#　　　　（蔵書にないときはじく）
+# render_template("staff/kaihatsu/kaihatsu_kinsho.html",rows=rows,check="禁書登録されてます")
+#      （禁書に登録されているときはじく）
+# render_template("staff/kaihatsu/kinsho_kakunin.html")
+#       （成功時確認画面へ）
+# 処理の説明
+# 蔵書にないとき、禁書登録がされているとき以外は確認画面へ
+# -------------------------------------------------
 @app.route("/kinsho_kakunin", methods=["GET", "POST"])
 @login_required
 @admin_required
@@ -674,7 +990,16 @@ def kinsho_kakunin():
     
     return render_template("staff/kaihatsu/kinsho_kakunin.html")
 
-# 禁書登録を外す
+
+
+# -------------------------------------------------
+# メソッド名：kaihatsu_kinsho_kaizyo
+# 引数　：なし
+# 返却値：render_template("staff/kaihatsu/kaihatsu_kinsho_kaizyo.html")
+# 　　　　（禁書登録を外すページを生成）
+# 処理の説明
+# 禁書登録を外すページを生成
+# -------------------------------------------------
 @app.route("/kaihatsu_kinsho_kaizyo", methods=["GET", "POST"])
 @login_required
 @admin_required
@@ -682,7 +1007,20 @@ def kaihatsu_kinsho_kaizyo():
 
     return render_template("staff/kaihatsu/kaihatsu_kinsho_kaizyo.html")
 
-# 禁書登録解除の確認
+
+
+# -------------------------------------------------
+# メソッド名：kaizyo_kakunin
+# 引数　：なし
+# 返却値：render_template("staff/kaihatsu/kaizyo_kakunin.html",rows=rows,z_check="蔵書にありません")
+# 　　　　（蔵書になかったらはじく）
+#     render_template("staff/kaihatsu/kaizyo_kakunin.html",rows=rows,check="禁書解除されてます")
+# 　　（禁書指定されていたらはじく）
+#     render_template("staff/kaihatsu/kaizyo_kakunin.html")
+# 　　（もとの画面へ）
+# 処理の説明
+# 蔵書にないとき、禁書登録がされているとき以外は確認画面へ
+# -------------------------------------------------
 @app.route("/kaizyo_kakunin", methods=["GET", "POST"])
 @login_required
 @admin_required
@@ -713,12 +1051,28 @@ def kaizyo_kakunin():
 
     return render_template("staff/kaihatsu/kaizyo_kakunin.html")
 
-# tf-idfを使った検索
+
+
+# -------------------------------------------------
+# メソッド名：huwatto
+# 引数　：なし
+# 返却値：render_template("user/huwatto.html")　　（tf-idfを使った検索フォームを描画）
+# 処理の説明
+# tf-idfを使った検索フォームを描画
+# -------------------------------------------------
 @app.route("/huwatto")
 def huwatto():
     return render_template("user/huwatto.html")
 
-# tf-idfを使った検索結果
+
+
+# -------------------------------------------------
+# メソッド名：huwatto_search_result
+# 引数　：なし
+# 返却値：render_template("user/huwatto_search_result.html",rows = rows)　（tf-idfを使った検索結果を描画）
+# 処理の説明
+# tf-idfを使った検索結果を描画
+# -------------------------------------------------
 @app.route("/huwatto_search_result", methods=["GET", "POST"])
 def huwatto_search_result():
     # データ受け取り
@@ -731,7 +1085,16 @@ def huwatto_search_result():
     # 検索をかける
     rows = main.huwatto(scores)
     return render_template("user/huwatto_search_result.html",rows = rows)
-# アカウントページ
+
+
+
+# -------------------------------------------------
+# メソッド名：account_info
+# 引数　：なし
+# 返却値：render_template("user/account_info.html",username=username)　　　（アカウントページを描画）
+# 処理の説明
+# アカウントページを描画
+# # -------------------------------------------------
 @app.route("/account_info", methods=["GET", "POST"])
 @login_required
 def account_info():

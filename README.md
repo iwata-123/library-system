@@ -22,3 +22,5 @@ pandas
 
 実行方法
     python flaskmain.pyで起動してください
+    ログインは利用者アカウントの場合はサインアップから
+    管理者アカウントの場合はユーザー名"admin"パスワード"adminpass"
