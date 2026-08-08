@@ -231,7 +231,7 @@ def pre_insed_tf_tdf():
     content = [" ".join(word_bunri(text))for text in content]
         # 分かち書き済み
     # 出現回数を調べる
-    count_vect = CountVectorizer()
+    count_vect = CountVectorizer(min_df=0.1,max_df=25)
     # 単語の出現回数をベクトルにしている
     X_counts = count_vect.fit_transform(content)
     # tf-idfを計算、正規化
@@ -244,7 +244,7 @@ def pre_insed_tf_tdf():
     # 開発用
     df = pd.DataFrame(X_tfidf.toarray(), columns=feature_names)
 
-    return X_tfidf,content
+    return X_tfidf,feature_names
 
 
 
@@ -260,38 +260,32 @@ def pre_insed_tf_tdf():
 # 文書ごとに検索語を一つずつあるか検索をかける
 # -------------------------------------------------
 
-def insed_tf_tdf(word,X_tfidf,con):
-    #検索語の分かち書き
+def insed_tf_tdf(word, X_tfidf, feature_names):
+    # 検索語の分かち書き
     content = word_bunri(word)
     content = rm_stopword(content)
 
-    #総文書数を表示
-    rows = count_book()
-    tmp = 0.0
+    # 総文書数
+    rows = X_tfidf.shape[0]
+    # 語彙一覧をリスト化
+    feature_list = feature_names.tolist()
+
     val = []
-    #文書の中から一つ選択（繰り返す）
     for j in range(rows):
         tmp = 0.0
-        #検索語の中から一つ選択（繰り返す）
         for s in content:
-            #文書の中の分かち書きした単語を一つ選択して一致するか総当たりで見る
-            mask = np.array([s in doc for doc in con])
-            #1の要素の位置を返す（1の場所だけになる）
-            #タプルが返るため[0]
-            matched_indices = np.where(mask)[0]
-            for idx in matched_indices:
-                if X_tfidf[j,idx] == 0.0:
-                    tmp += 0
-                else:
-                    tmp += X_tfidf[j,idx]
-                    #桁数2で切り捨てたい
-                    tmp = math.floor(tmp * 10**2) / (10**2)
+            if s in feature_list:
+                idx = feature_list.index(s)
+                score = X_tfidf[j, idx]
+                if score != 0.0:
+                    tmp += score
+                    tmp = math.floor(tmp * 10**2) / (10**1)
         val.append(tmp)
+
     scores = list(enumerate(val))
     scores.sort(key=lambda x: x[1], reverse=True)
     scores = [(i, float(score)) for i, score in scores]
     return scores
-
 # -------------------------------------------------
 # メソッド名：huwatto
 # 引数　：scores（文書ごとのtf-idfの結果）
@@ -378,11 +372,11 @@ def rm_stopword(tokens):
 # 引数　：scores（tf-idfをした後の結果）
 # 返却値：scores（足切を設けた後の結果）
 # 処理の説明
-# 1.0未満のtf-idfの結果を削除
+# 0.8未満のtf-idfの結果を削除
 # 
 # -------------------------------------------------
 def ashikiri(scores):
-    scores = [score for score in scores if score[1] > 1.0]    
+    scores = [score for score in scores if score[1] > 0.8]    
     return scores
 
 

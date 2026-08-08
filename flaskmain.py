@@ -70,20 +70,20 @@ class User(db.Model, UserMixin):
 #-----------------------------------------------------------------------------
 #管理者アカウントの作成
 #-----------------------------------------------------------------------------
-with app.app_context():
-    # 起動時テーブルを削除（開発用）
-    db.drop_all()
-    # テーブルの作成
-    db.create_all()
-    # 管理者用モデル
-    admin = User(
-        username="admin",
-        password_hash=generate_password_hash("adminpass"),
-        role="admin"
-    )
-    # 管理者ユーザー保存
-    db.session.add(admin)
-    db.session.commit()
+# with app.app_context():
+#     # 起動時テーブルを削除（開発用）
+#     db.drop_all()
+#     # テーブルの作成
+#     db.create_all()
+#     # 管理者用モデル
+#     admin = User(
+#         username="admin",
+#         password_hash=generate_password_hash("adminpass"),
+#         role="admin"
+#     )
+#     # 管理者ユーザー保存
+#     db.session.add(admin)
+#     db.session.commit()
 
 
 
@@ -201,13 +201,10 @@ def huwatto_post():
 # 引数　：なし
 # 返却値：render_template("user/login.html")　　　（ログインページの描画）
 # 処理の説明
-# テーブル追加用
+# ログイン画面描画
 # -------------------------------------------------
 @app.route("/")
 def login():
-    main.maketable()
-    tsuika.pre_tsuika()
-
     return render_template("user/login.html")
 
 
@@ -262,10 +259,17 @@ def login_post():
 # -------------------------------------------------
 @app.route("/user/signup", methods=["GET", "POST"])
 def register():
-
     if request.method == "POST":
         username = request.form["username"]
         password = request.form["password"]
+
+        # 既存ユーザー名の重複チェック
+        existing_user = User.query.filter_by(username=username).first()
+        if existing_user:
+            return render_template(
+                "user/signup.html",
+                error="このユーザー名は既に使用されています。"
+            )
         # パスワードの生成
         password_hash = generate_password_hash(password)
         # ユーザーのアカウントを生成
@@ -277,12 +281,8 @@ def register():
         # 保存
         db.session.add(user)
         db.session.commit()
-
         return render_template("user/login.html")
-
     return render_template("user/signup.html")
-
-
 
 # -------------------------------------------------
 # メソッド名：logout
@@ -1078,8 +1078,8 @@ def huwatto_search_result():
     # データ受け取り
     text = huwatto_post()
     # tf-idf検索
-    X_tfidf,content = main.pre_insed_tf_tdf()
-    scores = main.insed_tf_tdf(text,X_tfidf,content)
+    X_tfidf,feature_names = main.pre_insed_tf_tdf()
+    scores = main.insed_tf_tdf(text,X_tfidf,feature_names)
     # 規定以下の値は削除
     scores = main.ashikiri(scores)
     # 検索をかける
