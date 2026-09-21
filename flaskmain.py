@@ -1,6 +1,8 @@
 from flask import Flask,render_template,request,jsonify,session,redirect, url_for,abort
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 import main
+import tf_idf_search
+import search
 import sqlite3
 import re
 import tsuika
@@ -512,20 +514,30 @@ def base_staff_search(btitle):
                             * 
                         FROM
                             zosho
+                        INNER JOIN name
+                        ON zosho.name_id = name.id
+                        INNER JOIN author 
+                        ON zosho.author_id = author.id
+                        INNER JOIN publisher
+                        ON zosho.publisher_id = publisher.id
+                        INNER JOIN textsource
+                        ON zosho.textsource_id = textsource.id
                         WHERE
-                            name = ?  
+                            name.name = ?  
                         """,(f"{btitle}",)
                         )
         conn.commit()
         rows = cur.fetchall()
 
+
+
         for row in rows:
-            s_name = row[1]
-            s_author = row[2]
-            s_publisher = row[3]
-            s_isbn = row[4]
-            s_kashikari = row[5]
-            s_yoyaku = row[6]
+            s_name = row[10]
+            s_author = row[12]
+            s_publisher = row[14]
+            s_isbn = row[5]
+            s_kashikari = row[6]
+            s_yoyaku = row[8]
 
     return render_template("staff/base_staff_search.html",base_title = s_name,title = s_name,author = s_author,publisher = s_publisher,isbn = s_isbn,kashikari = s_kashikari,yoyaku = s_yoyaku)
 
@@ -543,7 +555,7 @@ def base_staff_search(btitle):
 @admin_required
 def staff_search_result():
     id,name,author,publisher,isbn,kashidashi,kinsho,yoyaku = staff_datapost()
-    rows = main.search_8(id,name,author,publisher,isbn,kashidashi,kinsho,yoyaku)
+    rows = search.search_8(id,name,author,publisher,isbn,kashidashi,kinsho,yoyaku)
     return render_template("staff/staff_search_result.html",rows = rows)
 
 
@@ -558,7 +570,7 @@ def staff_search_result():
 @app.route("/search_result", methods=["GET", "POST"])
 def search_result():
     id,name,author,publisher,isbn = datapost()
-    rows = main.search_5(id,name,author,publisher,isbn)
+    rows = search.search_5(id,name,author,publisher,isbn)
     return render_template("user/search_result.html",rows=rows)
 
 
@@ -586,7 +598,7 @@ def staff_search():
 # 利用者側の検索フォームを描画
 # -------------------------------------------------
 @app.route("/search")
-def search():
+def sagasu():
     return render_template("user/search.html")
 
 
@@ -1078,12 +1090,12 @@ def huwatto_search_result():
     # データ受け取り
     text = huwatto_post()
     # tf-idf検索
-    X_tfidf,feature_names = main.pre_insed_tf_tdf()
-    scores = main.insed_tf_tdf(text,X_tfidf,feature_names)
+    X_tfidf,feature_names = tf_idf_search.pre_insed_tf_tdf()
+    scores = tf_idf_search.insed_tf_tdf(text,X_tfidf,feature_names)
     # 規定以下の値は削除
-    scores = main.ashikiri(scores)
+    scores = tf_idf_search.ashikiri(scores)
     # 検索をかける
-    rows = main.huwatto(scores)
+    rows = tf_idf_search.huwatto(scores)
     return render_template("user/huwatto_search_result.html",rows = rows)
 
 
