@@ -15,6 +15,13 @@ from werkzeug.security import generate_password_hash
 #  上記の with app.app_context(): ブロックを削除済みであること)
 from flaskmain import app, db, User
 
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+a_id = os.getenv("ADMINID")
+a_pass = os.getenv("ADMINPASS")
+
 RESET = "--reset" in sys.argv
 
 with app.app_context():
@@ -34,8 +41,8 @@ with app.app_context():
         print("adminユーザーは既に存在します。スキップしました。")
     else:
         admin = User(
-            username="admin",
-            password_hash=generate_password_hash("adminpass"),
+            username="a_id",
+            password_hash=generate_password_hash("a_pass"),
             role="admin",
         )
         db.session.add(admin)
