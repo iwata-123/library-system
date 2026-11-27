@@ -4,3 +4,5 @@ init_library_data.py
 lib_sys.db
 test.py
 tsuika.py
+__pycache__
+__pycache__/

@@ -1,4 +1,3 @@
-
 import sqlite3
 
 
@@ -28,7 +27,7 @@ def search_5(id=None, name=None, author=None, publisher=None, isbn=None):
     values3 = []
     values4 = []
 
-    with sqlite3.connect('lib_sys.db') as conn:
+    with sqlite3.connect("lib_sys.db") as conn:
         cur = conn.cursor()
         # idの条件の追加
         if id:
@@ -66,7 +65,6 @@ def search_5(id=None, name=None, author=None, publisher=None, isbn=None):
         if conditions1 != []:
             # クエリに条件を付与
             query1 += " WHERE " + " AND ".join(conditions1)
-        
 
         if conditions2 != []:
             # クエリに条件を付与
@@ -75,7 +73,6 @@ def search_5(id=None, name=None, author=None, publisher=None, isbn=None):
         if conditions3 != []:
             # クエリに条件を付与
             query3 += " WHERE " + " AND".join(conditions3)
-
 
         if conditions4 != []:
             # クエリに条件を付与
@@ -89,7 +86,8 @@ def search_5(id=None, name=None, author=None, publisher=None, isbn=None):
             s_id = [row[0] for row in rows]
             # 表を組み立て
             for row_id in s_id:
-                cur.execute("""
+                cur.execute(
+                    """
                             SELECT name.name,author.author,publisher.publisher,zosho.isbn,zosho.kashidashi,zosho.yoyaku
                             FROM zosho
                             JOIN name 
@@ -99,8 +97,9 @@ def search_5(id=None, name=None, author=None, publisher=None, isbn=None):
                             JOIN publisher
                             ON zosho.publisher_id = publisher.id
                             WHERE zosho.id = ? AND kinsho != 1
-                            """,(f"{row_id}",)
-                            )
+                            """,
+                    (f"{row_id}",),
+                )
                 conn.commit()
                 rows = cur.fetchall()
                 # rowsが空じゃなければ値を返す
@@ -111,11 +110,12 @@ def search_5(id=None, name=None, author=None, publisher=None, isbn=None):
         if len(query2) > 18:
             cur.execute(query2, values2)
             conn.commit()
-            rows= cur.fetchall()
+            rows = cur.fetchall()
             s_id = [row[0] for row in rows]
             # 表を組み立て
             for row_id in s_id:
-                cur.execute("""
+                cur.execute(
+                    """
                             SELECT name.name,author.author,publisher.publisher,zosho.isbn,zosho.kashidashi,zosho.yoyaku
                             FROM zosho
                             JOIN name 
@@ -125,23 +125,25 @@ def search_5(id=None, name=None, author=None, publisher=None, isbn=None):
                             JOIN publisher
                             ON zosho.publisher_id = publisher.id
                             WHERE name.id = ? AND kinsho != 1
-                            """,(f"{row_id}")
-                            )
+                            """,
+                    (f"{row_id}"),
+                )
                 conn.commit()
                 rows = cur.fetchall()
                 if rows != []:
-                # rowsが空じゃなければ値を返す
+                    # rowsが空じゃなければ値を返す
                     return rows
 
         # 条件が加わっていればクエリ実行
         if len(query3) > 20:
             cur.execute(query3, values3)
             conn.commit()
-            rows= cur.fetchall()
+            rows = cur.fetchall()
             s_id = [row[0] for row in rows]
             # 表を組み立て
             for row_id in s_id:
-                cur.execute("""
+                cur.execute(
+                    """
                             SELECT name.name,author.author,publisher.publisher,zosho.isbn,zosho.kashidashi,zosho.yoyaku
                             FROM zosho
                             JOIN name 
@@ -151,8 +153,9 @@ def search_5(id=None, name=None, author=None, publisher=None, isbn=None):
                             JOIN publisher
                             ON zosho.publisher_id = publisher.id
                             WHERE author.id = ? AND kinsho != 1
-                            """,(f"{row_id}")
-                            )
+                            """,
+                    (f"{row_id}"),
+                )
                 conn.commit()
                 rows = cur.fetchall()
                 # rowsが空じゃなければ値を返す
@@ -163,11 +166,12 @@ def search_5(id=None, name=None, author=None, publisher=None, isbn=None):
         if len(query4) > 23:
             cur.execute(query4, values4)
             conn.commit()
-            rows= cur.fetchall()
+            rows = cur.fetchall()
             s_id = [row[0] for row in rows]
             # 表を組み立て
             for row_id in s_id:
-                cur.execute("""
+                cur.execute(
+                    """
                             SELECT name.name,author.author,publisher.publisher,zosho.isbn,zosho.kashidashi,zosho.yoyaku
                             FROM zosho
                             JOIN name 
@@ -177,15 +181,14 @@ def search_5(id=None, name=None, author=None, publisher=None, isbn=None):
                             JOIN publisher
                             ON zosho.publisher_id = publisher.id
                             WHERE publisher.id = ? AND kinsho != 1
-                            """,(f"{row_id}")
-                            )
+                            """,
+                    (f"{row_id}"),
+                )
                 conn.commit()
                 rows = cur.fetchall()
                 # rowsが空じゃなければ値を返す
                 if rows != []:
                     return rows
-
-
 
 
 # -------------------------------------------------
@@ -205,7 +208,16 @@ def search_5(id=None, name=None, author=None, publisher=None, isbn=None):
 # をそれぞれconditionsとvaluesに追加していき、conditionsが空でなかったらqueryにWHERE句を付与。
 # 条件が加わっていれば、検索クエリ実行
 # -------------------------------------------------
-def search_8(id=None,name=None,author=None,publisher=None,isbn=None,kashidashi=None,kinsho=None,yoyaku=None):
+def search_8(
+    id=None,
+    name=None,
+    author=None,
+    publisher=None,
+    isbn=None,
+    kashidashi=None,
+    kinsho=None,
+    yoyaku=None,
+):
     s_id = None
     # where句に書く条件をためておくためのリスト
     conditions1 = []
@@ -217,7 +229,7 @@ def search_8(id=None,name=None,author=None,publisher=None,isbn=None,kashidashi=N
     values2 = []
     values3 = []
     values4 = []
-    with sqlite3.connect('lib_sys.db') as conn:
+    with sqlite3.connect("lib_sys.db") as conn:
         cur = conn.cursor()
         # idの条件の追加
         if id:
@@ -266,7 +278,7 @@ def search_8(id=None,name=None,author=None,publisher=None,isbn=None,kashidashi=N
         # クエリに条件を付与
         if conditions1 != []:
             query1 += " WHERE " + " AND ".join(conditions1)
-        
+
         # クエリに条件を付与
         if conditions2 != []:
             query2 += " WHERE " + " AND ".join(conditions2)
@@ -287,11 +299,11 @@ def search_8(id=None,name=None,author=None,publisher=None,isbn=None,kashidashi=N
                 # 表を組み立て
                 cur.execute("""
                             PRAGMA table_info(zosho)
-                            """
-                            )
+                            """)
                 conn.commit()
                 rows = cur.fetchall()
-                cur.execute("""
+                cur.execute(
+                    """
                             SELECT name.name,author.author,publisher.publisher,zosho.isbn,zosho.kashidashi,zosho.kinsho,zosho.yoyaku
                             FROM zosho
                             JOIN name 
@@ -301,8 +313,9 @@ def search_8(id=None,name=None,author=None,publisher=None,isbn=None,kashidashi=N
                             JOIN publisher
                             ON zosho.publisher_id = publisher.id
                             WHERE zosho.id = ? AND kinsho != 1
-                            """,(f"{row_id}",)
-                            )
+                            """,
+                    (f"{row_id}",),
+                )
                 conn.commit()
                 rows = cur.fetchall()
                 if rows != []:
@@ -311,17 +324,17 @@ def search_8(id=None,name=None,author=None,publisher=None,isbn=None,kashidashi=N
         if len(query2) > 18:
             cur.execute(query2, values2)
             conn.commit()
-            rows= cur.fetchall()
-            s_id = [row[0] for row in rows] 
+            rows = cur.fetchall()
+            s_id = [row[0] for row in rows]
             for row_id in s_id:
                 # 表を組み立て
                 cur.execute("""
                             PRAGMA table_info(name)
-                            """
-                            )
+                            """)
                 conn.commit()
                 rows = cur.fetchall()
-                cur.execute("""
+                cur.execute(
+                    """
                             SELECT name.name,author.author,publisher.publisher,zosho.isbn,zosho.kashidashi,zosho.kinsho,zosho.yoyaku
                             FROM zosho
                             JOIN name 
@@ -331,8 +344,9 @@ def search_8(id=None,name=None,author=None,publisher=None,isbn=None,kashidashi=N
                             JOIN publisher
                             ON zosho.publisher_id = publisher.id
                             WHERE name.id = ? AND kinsho != 1
-                            """,(f"{row_id}")
-                            )
+                            """,
+                    (f"{row_id}"),
+                )
                 conn.commit()
                 rows = cur.fetchall()
                 if rows != []:
@@ -342,17 +356,17 @@ def search_8(id=None,name=None,author=None,publisher=None,isbn=None,kashidashi=N
         if len(query3) > 20:
             cur.execute(query3, values3)
             conn.commit()
-            rows= cur.fetchall()
+            rows = cur.fetchall()
             s_id = [row[0] for row in rows]
             for row_id in s_id:
                 # 表を組み立て
                 cur.execute("""
                             PRAGMA table_info(author)
-                            """
-                            )
+                            """)
                 conn.commit()
                 rows = cur.fetchall()
-                cur.execute("""
+                cur.execute(
+                    """
                             SELECT name.name,author.author,publisher.publisher,zosho.isbn,zosho.kashidashi,zosho.kinsho,zosho.yoyaku
                             FROM zosho
                             JOIN name 
@@ -362,8 +376,9 @@ def search_8(id=None,name=None,author=None,publisher=None,isbn=None,kashidashi=N
                             JOIN publisher
                             ON zosho.publisher_id = publisher.id
                             WHERE author.id = ? AND kinsho != 1
-                            """,(f"{row_id}")
-                            )
+                            """,
+                    (f"{row_id}"),
+                )
                 conn.commit()
                 rows = cur.fetchall()
                 if rows != []:
@@ -373,17 +388,17 @@ def search_8(id=None,name=None,author=None,publisher=None,isbn=None,kashidashi=N
         if len(query4) > 23:
             cur.execute(query4, values4)
             conn.commit()
-            rows= cur.fetchall()
+            rows = cur.fetchall()
             s_id = [row[0] for row in rows]
             # 表を組み立て
             for row_id in s_id:
                 cur.execute("""
                             PRAGMA table_info(publisher)
-                            """
-                            )
+                            """)
                 conn.commit()
                 rows = cur.fetchall()
-                cur.execute("""
+                cur.execute(
+                    """
                             SELECT name.name,author.author,publisher.publisher,zosho.isbn,zosho.kashidashi,zosho.kinsho,zosho.yoyaku
                             FROM zosho
                             JOIN name 
@@ -393,11 +408,10 @@ def search_8(id=None,name=None,author=None,publisher=None,isbn=None,kashidashi=N
                             JOIN publisher
                             ON zosho.publisher_id = publisher.id
                             WHERE publisher.id = ? AND kinsho != 1
-                            """,(f"{row_id}")
-                            )
+                            """,
+                    (f"{row_id}"),
+                )
                 conn.commit()
                 rows = cur.fetchall()
                 if rows != []:
                     return rows
-
-
