@@ -16,11 +16,9 @@
 テーブルは？どう設計する？
 タイトル,著者名,isbn,出版社,貸し出しステータス,禁書ステータス,id
 """
+
 import sqlite3
 import numpy as np
-
-
-
 
 
 # -------------------------------------------------
@@ -31,29 +29,29 @@ import numpy as np
 # zosho,name,author,publisher,textsourceテーブルを作る処理
 # -------------------------------------------------
 def maketable():
-    with sqlite3.connect('lib_sys.db') as conn:
+    with sqlite3.connect("lib_sys.db") as conn:
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
-        cur.execute('''
+        cur.execute("""
                     DROP TABLE IF EXISTS zosho
-                    ''')
+                    """)
         conn.commit()
 
-        cur.execute('''
+        cur.execute("""
                     DROP TABLE IF EXISTS name
-                    ''')
+                    """)
         conn.commit()
-        cur.execute('''
+        cur.execute("""
                     DROP TABLE IF EXISTS author
-                    ''')
+                    """)
         conn.commit()
-        cur.execute('''
+        cur.execute("""
                     DROP TABLE IF EXISTS publisher
-                    ''')
+                    """)
         conn.commit()
-        cur.execute('''
+        cur.execute("""
                     DROP TABLE IF EXISTS textsource
-                    ''')
+                    """)
         conn.commit()
         conn.execute("PRAGMA foreign_keys = ON")
         conn.commit()
@@ -116,124 +114,142 @@ def maketable():
 # publisherテーブルからid（zoshoテーブルとリレーションが貼ってある）,publisher（出版社名）
 # を更新
 # -------------------------------------------------
-def d_koushin(id,name,author,publisher,isbn,kashidashi,kinsho,yoyaku,textsource):
-    with sqlite3.connect('lib_sys.db') as conn:
+def d_koushin(
+    id, name, author, publisher, isbn, kashidashi, kinsho, yoyaku, textsource
+):
+    with sqlite3.connect("lib_sys.db") as conn:
         cur = conn.cursor()
         cur.execute(
-                    """
+            """
                     UPDATE zosho SET id = ?,name_id = ?,author_id = ?,publisher_id = ?,isbn = ?,kashidashi = ?,kinsho = ?,yoyaku = ? WHERE id = ?
                     """,
-                    (f"{id}",f"{id}",f"{id}",f"{id}",f"{isbn}",f"{kashidashi}",f"{kinsho}",f"{yoyaku}",f"{id}")
-                    )
+            (
+                f"{id}",
+                f"{id}",
+                f"{id}",
+                f"{id}",
+                f"{isbn}",
+                f"{kashidashi}",
+                f"{kinsho}",
+                f"{yoyaku}",
+                f"{id}",
+            ),
+        )
         conn.commit()
         cur.execute(
-                    """
+            """
                     UPDATE name SET id = ?,name = ? WHERE id = ?
                     """,
-                    (f"{id}",f"{name}",f"{id}")
-                    )
+            (f"{id}", f"{name}", f"{id}"),
+        )
         conn.commit()
         cur.execute(
-                    """
+            """
                     UPDATE author SET id = ?,author = ? WHERE id = ?
                     """,
-                    (f"{id}",f"{author}",f"{id}")
-                    )
+            (f"{id}", f"{author}", f"{id}"),
+        )
         conn.commit()
         cur.execute(
-                    """
+            """
                     UPDATE publisher SET id = ?,publisher = ? WHERE id = ?
                     """,
-                    (f"{id}",f"{publisher}",f"{id}")
-                    )
+            (f"{id}", f"{publisher}", f"{id}"),
+        )
         conn.commit()
         cur.execute(
-                    """
+            """
                     UPDATE textsource SET id = ?,textsource = ? WHERE id = ?
                     """,
-                    (f"{id}",f"{textsource}",f"{id}")
-                    )
+            (f"{id}", f"{textsource}", f"{id}"),
+        )
         conn.commit()
 
 
-#書籍の追加用
-def d_tsuika(name,author,publisher,isbn,textsource):
-    with sqlite3.connect('lib_sys.db') as conn:
+# 書籍の追加用
+def d_tsuika(name, author, publisher, isbn, textsource):
+    with sqlite3.connect("lib_sys.db") as conn:
         cur = conn.cursor()
-        #同じ本がないかチェック
+        # 同じ本がないかチェック
         flg = 0
         cur.execute(
-                    """
+            """
                     SELECT isbn 
                     FROM zosho
                     WHERE isbn = ? 
                     """,
-                    (f"{isbn}",)
-                    )
+            (f"{isbn}",),
+        )
         conn.commit()
         rows = cur.fetchall()
         if rows:
             # データがあったらflgは1
             flg = 1
             return flg
-        #データを挿入
+        # データを挿入
         cur.execute(
-                    """INSERT INTO zosho 
+            """INSERT INTO zosho 
                     (isbn,kashidashi,kinsho,yoyaku) 
                     VALUES (?,?,?,?)
                     """,
-                    (f"{isbn}",0,0,0)
-                    )
+            (f"{isbn}", 0, 0, 0),
+        )
         conn.commit()
-        #idを取得
+        # idを取得
         rowid = cur.lastrowid
         cur.execute(
-                    """
+            """
                     UPDATE zosho 
                     SET id = ?,name_id = ?,author_id = ?,publisher_id = ?
                     WHERE isbn = ?
                     """,
-                    (f"{rowid}",f"{rowid}",f"{rowid}",f"{rowid}",f"{isbn}",)
-                    )
+            (
+                f"{rowid}",
+                f"{rowid}",
+                f"{rowid}",
+                f"{rowid}",
+                f"{isbn}",
+            ),
+        )
         conn.commit()
 
         cur.execute(
-                        """INSERT INTO name 
+            """INSERT INTO name 
                         (name) 
                         VALUES (?)
                         """,
-                        (f"{name}",)
-                        )
+            (f"{name}",),
+        )
         conn.commit()
         cur.execute(
-                        """INSERT INTO author
+            """INSERT INTO author
                         (author) 
                         VALUES (?)
                         """,
-                        (f"{author}",)
-                        )
+            (f"{author}",),
+        )
         conn.commit()
         cur.execute(
-                        """INSERT INTO publisher
+            """INSERT INTO publisher
                         (publisher) 
                         VALUES (?)
                         """,
-                        (f"{publisher}",)
-                        )
+            (f"{publisher}",),
+        )
 
         conn.commit()
         cur.execute(
-                        """INSERT INTO textsource
+            """INSERT INTO textsource
                         (textsource) 
                         VALUES (?)
                         """,
-                        (f"{textsource}",)
-                        )
+            (f"{textsource}",),
+        )
 
         conn.commit()
         flg = 0
-        return flg 
-    
+        return flg
+
 
 # -------------------------------------------------
 # メソッド名：d_sakuzyo
@@ -244,17 +260,17 @@ def d_tsuika(name,author,publisher,isbn,textsource):
 # 対象の書籍データの削除処理を行う。
 # -------------------------------------------------
 def d_sakuzyo(isbn):
-    with sqlite3.connect('lib_sys.db') as conn:
+    with sqlite3.connect("lib_sys.db") as conn:
         cur = conn.cursor()
 
         cur.execute(
-                        """
+            """
                         SELECT id
                         FROM zosho
                         WHERE isbn = ?
                         """,
-                        (f"{isbn}",)
-                        )
+            (f"{isbn}",),
+        )
         conn.commit()
         rows = cur.fetchall()
         if rows != []:
@@ -263,41 +279,42 @@ def d_sakuzyo(isbn):
         else:
             return 0
         cur.execute(
-                        """
+            """
                         DELETE FROM zosho WHERE id = ?
                         """,
-                        (f"{id}",)
-                        )
+            (f"{id}",),
+        )
         conn.commit()
         cur.execute(
-                        """
+            """
                         DELETE FROM name WHERE id = ?
                         """,
-                        (f"{id}",)
-                        )
+            (f"{id}",),
+        )
         conn.commit()
         cur.execute(
-                        """
+            """
                         DELETE FROM author WHERE id = ?
                         """,
-                        (f"{id}",)
-                        )
+            (f"{id}",),
+        )
         conn.commit()
         cur.execute(
-                        """
+            """
                         DELETE FROM publisher WHERE id = ?
                         """,
-                        (f"{id}",)
-                        )
+            (f"{id}",),
+        )
         conn.commit()
         cur.execute(
-                        """
+            """
                         DELETE FROM textsource WHERE id = ?
                         """,
-                        (f"{id}",)
-                        )
+            (f"{id}",),
+        )
         conn.commit()
         return 1
+
 
 # -------------------------------------------------
 # メソッド名：d_kinsho
@@ -307,15 +324,16 @@ def d_sakuzyo(isbn):
 # isbnで蔵書検索をかけて検索をかけた書籍に対して禁書登録をする
 # -------------------------------------------------
 def d_kinsho(isbn):
-    with sqlite3.connect('lib_sys.db') as conn:
+    with sqlite3.connect("lib_sys.db") as conn:
         cur = conn.cursor()
         cur.execute(
-                        """
+            """
                         UPDATE zosho SET kinsho = 1 WHERE isbn = ?
                         """,
-                        (f"{isbn}",)
-                        )
+            (f"{isbn}",),
+        )
         conn.commit()
+
 
 # -------------------------------------------------
 # メソッド名：d_kinsho_kaizyo
@@ -325,54 +343,45 @@ def d_kinsho(isbn):
 # isbnで蔵書検索をかけて検索をかけた書籍に対して禁書登録解除をする
 # -------------------------------------------------
 def d_kinsho_kaizyo(isbn):
-    with sqlite3.connect('lib_sys.db') as conn:
+    with sqlite3.connect("lib_sys.db") as conn:
         cur = conn.cursor()
         cur.execute(
-                        """
+            """
                         UPDATE zosho SET kinsho = 0 WHERE isbn = ?
                         """,
-                        (f"{isbn}",)
-                        )
+            (f"{isbn}",),
+        )
         conn.commit()
-
 
 
 # テスト用　テーブルの中身をコンソールに表示する用だったもの
 def hyozi():
-    with sqlite3.connect('lib_sys.db') as conn:
+    with sqlite3.connect("lib_sys.db") as conn:
         cur = conn.cursor()
-        cur.execute(
-                        """
+        cur.execute("""
                         SELECT *
                         FROM zosho
-                        """
-                        )
+                        """)
         conn.commit()
         rows1 = cur.fetchall()
 
-        cur.execute(
-                        """
+        cur.execute("""
                         SELECT *
                         FROM name
-                        """
-                        )
+                        """)
         conn.commit()
         rows2 = cur.fetchall()
-        cur.execute(
-                        """
+        cur.execute("""
                         SELECT *
                         FROM author
-                        """
-                        )
+                        """)
         conn.commit()
         rows3 = cur.fetchall()
-        cur.execute(
-                        """
+        cur.execute("""
                         SELECT *
                         FROM publisher
-                        """
-                        )
+                        """)
         conn.commit()
         rows4 = cur.fetchall()
 
-    return rows1,rows2,rows3,rows4
+    return rows1, rows2, rows3, rows4
