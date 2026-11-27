@@ -1,1 +1,6 @@
 .env
+init_db.py
+init_library_data.py
+lib_sys.db
+test.py
+tsuika.py
